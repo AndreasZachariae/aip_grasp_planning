@@ -63,10 +63,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y \
     ros-$ROS_DISTRO-sensor-msgs-py  \
     ros-$ROS_DISTRO-joy*  \
     ros-$ROS_DISTRO-cv-bridge \
-    ros-$ROS_DISTRO-perception-pcl 
+    ros-$ROS_DISTRO-perception-pcl\
+    ros-$ROS_DISTRO-rviz2
 
 USER $USER
-RUN pip install numpy scipy
+RUN pip install numpy scipy open3d
+
 
 ##############################################################################
 ##                                 User Dependecies                         ##
@@ -77,10 +79,14 @@ RUN mkdir -p /home/"$USER"/dependencies_ws/src
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/dependencies_ws && colcon build
 RUN echo "source /home/$USER/dependencies_ws/install/setup.bash" >> /home/"$USER"/.bashrc
 
-
-
 RUN mkdir -p /home/"$USER"/ros_ws/src
 COPY ./src/aip_grasp_planning /home/"$USER"/ros_ws/src/aip_grasp_planning
+
+COPY ./src/point_transformation /home/"$USER"/dependencies_ws/src/point_transformation
+
+RUN mkdir -p /home/"$USER"/ros_ws/pcl_recordings
+
+RUN chown -c $USER:$USER /home/"$USER"/ros_ws/pcl_recordings
 
 ##############################################################################
 ##                                 Build ROS and run                        ##
@@ -89,6 +95,7 @@ USER $USER
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/ros_ws && colcon build
 RUN echo "source /home/$USER/ros_ws/install/setup.bash" >> /home/$USER/.bashrc
 
+
 WORKDIR /home/$USER/ros_ws
 
 CMD /bin/bash
@@ -96,9 +103,3 @@ CMD /bin/bash
 
 
 
-# depth 1 
-checkout <id>
-
-remap /depth_image 
-
-topics auslesen RVIZ
