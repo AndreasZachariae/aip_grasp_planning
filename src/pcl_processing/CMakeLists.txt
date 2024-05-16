@@ -41,7 +41,7 @@ ament_python_install_package(scripts)
 
 # Install Python executables
 install(PROGRAMS
-  scripts/transform_depth_image.py
+  scripts/grasp_planning_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
