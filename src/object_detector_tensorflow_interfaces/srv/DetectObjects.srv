@@ -1,0 +1,5 @@
+
+---
+Detections detections
+sensor_msgs/Image result_image
+sensor_msgs/Image reference_image
