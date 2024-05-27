@@ -46,7 +46,7 @@ class GraspPlanning(Node):
             self.get_logger().info('PixelToPoint service not available, waiting again...')
 
         # Create a publisher to '/../points topic and 
-        self.points_publisher = self.create_publisher(PointCloud2, 'points_topic', 10)
+        #self.points_publisher = self.create_publisher(PointCloud2, 'points_topic', 10)
 
         
 
@@ -129,11 +129,11 @@ class GraspPlanning(Node):
    
         ## To-Do: Position the mask correctly in the depth image frame based on the bounding box and center point of the bounding box ##
 
-        width_bb = best_detection.mask.width
-        height_bb = best_detection.mask.height
+        width_bb = int(best_detection.mask.width)
+        height_bb = int(best_detection.mask.height)
 
-        x_offset = best_detection.center.x - width_bb/2
-        y_offset = best_detection.center.y + height_bb/2     #sensor_msgs/Image has the origin at the top left corner
+        x_offset = int(best_detection.center.x - width_bb/2)
+        y_offset = int(best_detection.center.y + height_bb/2)     #sensor_msgs/Image has the origin at the top left corner
 
         best_mask = [(i, j) for i in range(x_offset, x_offset + width_bb) for j in range(y_offset - height_bb, y_offset)]  
        
