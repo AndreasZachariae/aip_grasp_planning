@@ -1,50 +1,52 @@
-#include <pcl_processing/pcl_pose_processing.h>
+#include <pcl_processing/point_cloud_processing_node.h>
 
 
     PointCloudProcessingNode::PointCloudProcessingNode(): Node("grasp_object_surface_normal")
     {
         // Create the service
-        service_ = this->create_service<grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>(
+        PointCloudProcessingNode::service_ = this->create_service<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>(
             "grasp_object_surface_normal",
-            std::bind(&PointCloudProcessingNode::processPointCloud, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+            std::bind(&PointCloudProcessingNode::processPointCloud, this, std::placeholders::_1, std::placeholders::_2));
     }
 
-    void PointCloudProcessingNode::processPointCloud(const std::shared_ptr<grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Request> request, std::shared_ptr<geometry_msgs::srv::Pose::Response> response)
+    void PointCloudProcessingNode::processPointCloud(const std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Request> request, std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Response> response)
     {
         // Process the point cloud and generate the pose
         geometry_msgs::msg::Pose pose;
 
         // Extract the point cloud from the request
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud = this->transformPointsToPointCloud(request->maskedPoints);
+        cloud = this->transformPointsToPointCloud(request->masked_points);
+        pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
 
         // Set the response
-        response->pose = pose;
+        response->surface_normal_to_grasp = pose;
     }
 
-    rclcpp::Service<geometry_msgs::srv::PoseArrayToPose>::SharedPtr service_;
-    rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr result_publisher_;
+    // rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr result_publisher_;
 
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr transformPointsToPointCloud(const std::vector<pcl::PointXYZ>& maskedPoints)
+pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::transformPointsToPointCloud(const std::vector<geometry_msgs::msg::Point>& maskedPoints)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    cloud->width = maskedPoints.size();
-    cloud->height = 1;
-    cloud->is_dense = false;
-    cloud->maskedPoints.resize(cloud->width * cloud->height);
-
-    for (size_t i = 0; i < maskedPoints.size(); ++i)
+    
+    for (const auto& point : maskedPoints)
     {
-        cloud->points[i].x = maskedPoints[i].x;
-        cloud->points[i].y = maskedPoints[i].y;
-        cloud->points[i].z = maskedPoints[i].z;
+        pcl::PointXYZ pcl_point;
+        pcl_point.x = point.x;
+        pcl_point.y = point.y;
+        pcl_point.z = point.z;
+        cloud->points.push_back(pcl_point);
     }
+
+    // Set the size of the point cloud
+    cloud->width = cloud->points.size();
+    cloud->height = 1;
 
     return cloud;
 }
 
-pcl::ModelCoefficients::Ptr extractSurfacePlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
+pcl::ModelCoefficients::Ptr PointCloudProcessingNode::extractSurfacePlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
     pcl::SACSegmentation<pcl::PointXYZ> seg;
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -62,7 +64,7 @@ pcl::ModelCoefficients::Ptr extractSurfacePlane(const pcl::PointCloud<pcl::Point
     return coefficients;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr extractInlierPoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const pcl::PointIndices::Ptr inliers)
+pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::extractInlierPoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const pcl::PointIndices::Ptr inliers)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr inlierCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::ExtractIndices<pcl::PointXYZ> extract;

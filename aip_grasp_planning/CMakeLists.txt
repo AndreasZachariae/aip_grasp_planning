@@ -13,6 +13,8 @@ find_package(pcl_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(aip_grasp_planning_interfaces REQUIRED)
+find_package(object_detector_tensorflow_interfaces REQUIRED)
 
 #find directory to includ .h files
 include_directories(
@@ -25,6 +27,8 @@ set(DEPENDENCIES
   ament_index_cpp
   pcl_ros
   sensor_msgs
+  aip_grasp_planning_interfaces
+  object_detector_tensorflow_interfaces
 )
 
 file (GLOB SOURCES_NODES src/aip_grasp_planning/*.cpp)

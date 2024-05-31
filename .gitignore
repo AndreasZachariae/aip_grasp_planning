@@ -146,3 +146,4 @@ cython_debug/
 install/
 log/
 .vscode/
+object_detector_tensorflow_interfaces/
