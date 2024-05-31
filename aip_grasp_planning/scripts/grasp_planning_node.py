@@ -45,7 +45,6 @@ class GraspPlanning(Node):
         # Create a call the  topic and 
         self.PC_client = self.create_client(GraspObjectSurfaceNormal, 'point_cloud_processing_node/grasp_object_surface_normal', callback_group=self.transform_service_group)
 
-        
 
     def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
         """
@@ -124,11 +123,13 @@ class GraspPlanning(Node):
             else:
                 self.get_logger().info('No detections found')
    
-        width_bb = int(best_detection.bounding_box.width)
-        height_bb = int(best_detection.bounding_box.height)
+        ## To-Do: Position the mask correctly in the depth image frame based on the bounding box and center point of the bounding box ##
 
-        x_offset = int(best_detection.bounding_box.x_offset)
-        y_offset = int(best_detection.bounding_box.y_offset)     
+        width_bb = int(best_detection.mask.width)
+        height_bb = int(best_detection.mask.height)
+
+        x_offset = int(best_detection.center.x - width_bb/2)
+        y_offset = int(best_detection.center.y + height_bb/2)     #sensor_msgs/Image has the origin at the top left corner  
 
         best_mask = [(i, j) for i in range(x_offset, x_offset + width_bb) for j in range(y_offset - height_bb, y_offset)]  
        

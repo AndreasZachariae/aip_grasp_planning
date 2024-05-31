@@ -37,7 +37,7 @@ RUN echo "source /usr/share/colcon_cd/function/colcon_cd.sh" >> /etc/bash.bashrc
 RUN echo "export _colcon_cd_root=~/ros2_install" >> /etc/bash.bashrc
 
 # Set ROS2 DDS profile
-COPY ./src/aip_grasp_planning/config/dds_profile.xml /home/$USER
+COPY ./aip_grasp_planning/config/dds_profile.xml /home/$USER
 
 RUN chown $USER:$USER /home/$USER/dds_profile.xml
 ENV FASTRTPS_DEFAULT_PROFILES_FILE=/home/$USER/dds_profile.xml
@@ -80,9 +80,13 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/dependencies_ws && colco
 RUN echo "source /home/$USER/dependencies_ws/install/setup.bash" >> /home/"$USER"/.bashrc
 
 RUN mkdir -p /home/"$USER"/ros_ws/src
-COPY ./src/aip_grasp_planning /home/"$USER"/ros_ws/src/aip_grasp_planning
-
-COPY ./src/point_transformation /home/"$USER"/dependencies_ws/src/point_transformation
+COPY ./aip_grasp_planning /home/"$USER"/ros_ws/src/aip_grasp_planning
+COPY ./aip_grasp_planning_interfaces /home/"$USER"/ros_ws/src/aip_grasp_planning_interfaces
+COPY ./object_detector_tensorflow_interfaces /home/"$USER"/ros_ws/src/object_detector_tensorflow_interfaces
+# RUN git clone -b humble https://github.com/IRAS-HKA/object_detector_tensorflow.git
+# RUN mv ./object_detector_tensorflow/ros/object_detector_tensorflow_interfaces . && \
+#     rm -rf ./object_detector_tensorflow
+COPY ./point_transformation /home/"$USER"/dependencies_ws/src/point_transformation
 
 RUN mkdir -p /home/"$USER"/ros_ws/pcl_recordings
 
@@ -92,11 +96,13 @@ RUN chown -c $USER:$USER /home/"$USER"/ros_ws/pcl_recordings
 ##                                 Build ROS and run                        ##
 ##############################################################################
 USER $USER 
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/ros_ws && colcon build
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/ros_ws && colcon build --symlink-install \
+--cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 RUN echo "source /home/$USER/ros_ws/install/setup.bash" >> /home/$USER/.bashrc
 
 
 WORKDIR /home/$USER/ros_ws
+RUN echo "~/ros_ws/source install/setup.bash" >> ~/.bashrc 
 
 CMD /bin/bash
 
