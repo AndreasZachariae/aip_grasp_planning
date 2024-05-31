@@ -1,0 +1,3 @@
+geometry_msgs/Point[] masked_points
+---
+geometry_msgs/Pose surface_normal_to_grasp
