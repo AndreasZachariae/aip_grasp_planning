@@ -27,6 +27,7 @@ set(DEPENDENCIES
 # Generate custom messages
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GraspObjectSurfaceNormal.srv"
+  "srv/GraspPlanning.srv"
   DEPENDENCIES ${DEPENDENCIES}
 )
 

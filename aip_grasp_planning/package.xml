@@ -13,7 +13,6 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>aip_grasp_planning_interfaces</depend>
-  <depend>object_detector_tensorflow_interfaces</depend>
 
 
   <test_depend>ament_lint_auto</test_depend>
