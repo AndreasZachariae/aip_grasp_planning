@@ -4,20 +4,25 @@
     PointCloudProcessingNode::PointCloudProcessingNode(): Node("grasp_object_surface_normal")
     {
         // Create the service
-        PointCloudProcessingNode::service_ = this->create_service<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>(
-            "grasp_object_surface_normal",
-            std::bind(&PointCloudProcessingNode::processPointCloud, this, std::placeholders::_1, std::placeholders::_2));
+        this->service = this->create_service<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>("grasp_object_surface_normal", std::bind(&PointCloudProcessingNode::processPointCloud, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void PointCloudProcessingNode::processPointCloud(const std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Request> request, std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Response> response)
     {
         // Process the point cloud and generate the pose
         geometry_msgs::msg::Pose pose;
+        pose.position.x = 0.0;
+        pose.position.y = 0.0;
+        pose.position.z = 0.0;
+        pose.orientation.x = 0.0;
+        pose.orientation.y = 0.0;
+        pose.orientation.z = 0.0;
+        pose.orientation.w = 1.0;
 
-        // Extract the point cloud from the request
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        cloud = this->transformPointsToPointCloud(request->masked_points);
-        pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
+        // // Extract the point cloud from the request
+        // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+        // cloud = this->transformPointsToPointCloud(request->masked_points);
+        // pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
 
         // Set the response
         response->surface_normal_to_grasp = pose;
@@ -80,8 +85,8 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::extractInlierPoint
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<PointCloudProcessingNode>();
-    rclcpp::spin(node);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Grasp object surface normal processing node started");
+    rclcpp::spin(std::make_shared<PointCloudProcessingNode>());
     rclcpp::shutdown();
     return 0;
 }

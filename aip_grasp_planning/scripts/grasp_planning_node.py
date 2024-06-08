@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
 import rclpy
-from cv_bridge import CvBridge
 from rclpy.node import Node
-from sensor_msgs.msg import Image, RegionOfInterest
-
-from object_detector_tensorflow_interfaces.srv import DetectObjects
+from sensor_msgs.msg import Image
 
 from geometry_msgs.msg import Point
-from sensor_msgs.msg import Point
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Quaternion
+from sensor_msgs.msg import Image
+
 from point_transformation_interfaces.srv import PixelToPoint
-from grasp_planning_interfaces import GraspObjectSurfaceNormal
+from aip_grasp_planning_interfaces.srv import GraspObjectSurfaceNormal
+from aip_grasp_planning_interfaces.srv import GraspPlanning
 
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-class GraspPlanning(Node):
+class GraspPlanningNode(Node):
     """
     This class represents the GraspPlanning node.
 
@@ -23,28 +24,63 @@ class GraspPlanning(Node):
     """
 
     def __init__(self):
-        super().__init__('depth_image_sub')
-        self.transform_service_group = MutuallyExclusiveCallbackGroup() #callback group controls the execution of the callback function 
+        super().__init__('grasp_planning_node')
+        self.service_group = MutuallyExclusiveCallbackGroup() #callback group controls the execution of the callback function 
                                                                         # MutuallyExclusiveCallbackGroup: Only one Callback in the group can be executed at a time.
+        self.get_logger().info("Started grasp_planning_server")
 
-        # Create a subscription to the '/stereo/depth' topic and specify the callback function
-        self.image_subscriber = self.create_subscription(Image, '/stereo/depth', self.depth_image_callback, 10)
-        self.get_logger().info("Started depth_image_sub")
-
-        # Create a client to call 'detect_object' service to retrieve the mask provided by ODTF
-        self.ODTF_client = self.create_client(DetectObjects, 'detection_node/detect_objects', callback_group=self.transform_service_group)
+        # Create a server to handle the 'grasp_planning service requests
+        self.grasp_planning_server = self.create_service(GraspPlanning, 'grasp_planning_node/grasp_planning', self.grasp_planning_logic)
 
         # Create a client to call the 'PixelToPoint' service provided by the 'point_transformation_node'
-        self.PtP_client = self.create_client(
-        PixelToPoint, 'point_transformation_node/pixel_to_point', callback_group=self.transform_service_group)
+        self.PtP_client = self.create_client(PixelToPoint, 'point_transformation_node/pixel_to_point', callback_group=self.service_group)
+
+        # Create a client to request the grasp pose normal vector
+        self.grasp_pose_client = self.create_client(GraspObjectSurfaceNormal, 'grasp_object_surface_normal', callback_group=self.service_group)
 
         # Wait for the 'PixelToPoint' service to become available
         while not self.PtP_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('PixelToPoint service not available, waiting again...')
 
-        # Create a call the  topic and 
-        self.PC_client = self.create_client(GraspObjectSurfaceNormal, 'point_cloud_processing_node/grasp_object_surface_normal', callback_group=self.transform_service_group)
+        # Wait for the 'GraspObjectSurfaceNormal' service to become available
+        while not self.grasp_pose_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('GraspObjectSurfaceNormal service not available, waiting again...')
 
+    def grasp_planning_logic(self, request, response):
+        masks = request.masks
+        depth_image = request.depth_image
+
+        for mask in masks:
+        # Convert the mask image to a list of pixels
+            pixels = []
+            for i in range(mask.height):
+                for j in range(mask.width):
+                    if mask.data[i * mask.step + j] != 0:
+                        pixels.append((j, i))
+
+            # Call the 'pixel_to_point' method to convert the pixels to points
+            points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+
+            # Call the 'grasp_pose_client' service to get the grasp poses
+            grasp_pose_request = GraspObjectSurfaceNormal.Request()
+            grasp_pose_request.masked_points = points
+            grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)
+
+            # # Process the grasp pose response and extract the grasp poses
+            # grasp_pose = grasp_pose_response.grasp_pose
+
+        # Return the response with the calculated grasp poses
+        response.grasp_pose = [
+            Pose(position=Point(x=0.1, y=0.2, z=0.3), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=0.2, y=0.3, z=0.4), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+        ]
+        response.cylinder_ids = [1, 2]
+        response.place_pose = [
+            Pose(position=Point(x=0.0, y=0.0, z=0.0), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=0.1, y=0.1, z=0.1), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+        ]
+
+        return response
 
     def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
         """
@@ -108,7 +144,6 @@ class GraspPlanning(Node):
         self.get_logger().info(str(ptp_response.points))
         return ptp_response.points
     
-
     def highest_probability_mask(self, odtf_response):
         # Select the mask with the highest probability     
         max_prob = -1
@@ -137,40 +172,40 @@ class GraspPlanning(Node):
 
     ########################
 
-    def retrieve_mask_async(self):
+    # def retrieve_mask_async(self):
 
-        mask_request = DetectObjects.Request()
-        # Call the 'detect_objects' service asynchronously to retrieve the mask
-        mask_response: DetectObjects.Response = self.ODTF_client.call_async(mask_request)
+    #     mask_request = DetectObjects.Request()
+    #     # Call the 'detect_objects' service asynchronously to retrieve the mask
+    #     mask_response: DetectObjects.Response = self.ODTF_client.call_async(mask_request)
 
-        return mask_response
+    #     return mask_response
 
-    def retrieve_mask(self):
+    # def retrieve_mask(self):
 
-        future = self.retrieve_mask_async()
-        self.get_logger().info('before spin_until_future_complete for Mask')
+    #     future = self.retrieve_mask_async()
+    #     self.get_logger().info('before spin_until_future_complete for Mask')
 
-        rclpy.spin_until_future_complete(self, future)
-        odtf_response = future.result()
+    #     rclpy.spin_until_future_complete(self, future)
+    #     odtf_response = future.result()
         
-        self.get_logger().info('after spin_until_future_complete for Mask')
+    #     self.get_logger().info('after spin_until_future_complete for Mask')
 
-        # Log the masks received from the 'detect_objects' service
-        if odtf_response is not None:
-            for i, detection in enumerate(odtf_response.detections.detections):
-                self.get_logger().info('Received response for Mask %d: %s' % (i, str(detection.mask))) 
-        else:
-            self.get_logger().error('Exception while calling ODTF service: %r' % future.exception())
+    #     # Log the masks received from the 'detect_objects' service
+    #     if odtf_response is not None:
+    #         for i, detection in enumerate(odtf_response.detections.detections):
+    #             self.get_logger().info('Received response for Mask %d: %s' % (i, str(detection.mask))) 
+    #     else:
+    #         self.get_logger().error('Exception while calling ODTF service: %r' % future.exception())
     
-        for i, detection in enumerate(odtf_response.detections.detections):
-            self.get_logger().info('Mask %d: %s' % (i, str(detection.mask)))
+    #     for i, detection in enumerate(odtf_response.detections.detections):
+    #         self.get_logger().info('Mask %d: %s' % (i, str(detection.mask)))
         
-        if odtf_response is not None:
-            next_object_mask = self.highest_probability_mask(odtf_response)
-        else:
-            self.get_logger().error('Exception while calling ODTF service: %r' % future.exception())   
+    #     if odtf_response is not None:
+    #         next_object_mask = self.highest_probability_mask(odtf_response)
+    #     else:
+    #         self.get_logger().error('Exception while calling ODTF service: %r' % future.exception())   
         
-        return next_object_mask
+    #     return next_object_mask
 
     #########################
 
@@ -186,35 +221,10 @@ class GraspPlanning(Node):
     #########################
 
 
-    def depth_image_callback(self, img_msg):
-        
-        self.img_msg = img_msg
-
-        # Call the 'pixel_to_point' method to convert the pixels to points
-        #self.point = self.pixel_to_point([(5,10), (100,100)], img_msg.height, img_msg.width, img_msg)
-        
-        
-        #### Temporary mask for testing
-        # self.mask = [(i, j) for i in range(100, 105) for j in range(100, 105)]
-        #self.mask = [[(5,10), (100,100)]]
-        
-        # Get the mask from the 'detect_objects' service response
-        mask = self.retrieve_mask()
-        self.get_logger().info("after ODTF Mask client call")
-
-        # Call the 'pixel_to_point' method with the retrieved mask to convert the pixels to points
-        point = self.pixel_to_point(mask, img_msg.height, img_msg.width, img_msg)
-        self.get_logger().info("after PixelToPoint client call")
-
-        next_grasp_object_surface_normal = self.PC_client(point) #call PointCloud Service to receive object surface normal for the next grasp object based on the preprocessed maskedPointCloud (with ROI to the next grasp object)
- 
-        return next_grasp_object_surface_normal     #further processing with calculate offsets and gripper selection
-
-
 def main(args=None):
     rclpy.init(args=args)
 
-    grasp_planning_node = GraspPlanning()
+    grasp_planning_node = GraspPlanningNode()
 
     try:
         rclpy.spin(grasp_planning_node)
