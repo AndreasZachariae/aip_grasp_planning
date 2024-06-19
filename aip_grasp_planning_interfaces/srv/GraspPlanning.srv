@@ -1,4 +1,5 @@
 string[] objects_to_pick
+aip_packing_planning_interfaces/PackageSequence package_sequence
 sensor_msgs/Image depth_image
 object_detector_tensorflow_interfaces/Detections detections
 ---
