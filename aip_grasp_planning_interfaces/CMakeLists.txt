@@ -32,6 +32,7 @@ set(DEPENDENCIES
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GraspObjectSurfaceNormal.srv"
   "srv/GraspPlanning.srv"
+  "msg/CylinderCombination.msg"
   DEPENDENCIES ${DEPENDENCIES}
 )
 
