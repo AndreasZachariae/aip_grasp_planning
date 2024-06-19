@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(aip_packing_planning_interfaces)
+find_package(object_detector_tensorflow_interfaces)
 
 set(DEPENDENCIES 
     sensor_msgs
