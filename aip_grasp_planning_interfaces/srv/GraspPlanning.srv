@@ -1,6 +1,7 @@
-std_msgs/String[] objects_to_pick
+string[] objects_to_pick
+aip_packing_planning_interfaces/PackageSequence package_sequence
 sensor_msgs/Image depth_image
-sensor_msgs/Image[] masks
+object_detector_tensorflow_interfaces/Detections detections
 ---
 geometry_msgs/Pose[] grasp_pose
 std_msgs/Int32[] cylinder_ids
