@@ -52,11 +52,7 @@ class GraspPlanningNode(Node):
 
         for mask in masks:
         # Convert the mask image to a list of pixels
-            pixels = []
-            for i in range(mask.height):
-                for j in range(mask.width):
-                    if mask.data[i * mask.step + j] != 0:
-                        pixels.append((j, i))
+            pixels = self.convert_image_mask_to_pixel_indices(mask)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
             points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
@@ -81,6 +77,15 @@ class GraspPlanningNode(Node):
         ]
 
         return response
+
+    def convert_image_mask_to_pixel_indices(self, mask):
+        pixels = []
+        for i in range(mask.height):
+            for j in range(mask.width):
+                if mask.data[i * mask.step + j] != 0:
+                    pixels.append((j, i))
+        return pixels
+        
 
     def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
         """
