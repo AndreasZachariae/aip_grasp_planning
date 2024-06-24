@@ -70,16 +70,34 @@ USER $USER
 RUN pip install numpy scipy open3d
 
 ##############################################################################
-##                                 Build ROS and run                        ##
+##                                 User Dependecies                         ##
 ##############################################################################
-RUN mkdir -p /home/"$USER"/ros_ws/src
-COPY ./aip_grasp_planning /home/"$USER"/ros_ws/src/aip_grasp_planning
-COPY ./aip_grasp_planning_interfaces /home/"$USER"/ros_ws/src/aip_grasp_planning_interfaces
-COPY ./point_transformation /home/"$USER"/ros_ws/src/point_transformation
+RUN mkdir -p /home/$USER/ros_ws/src
+WORKDIR /home/$USER/ros_ws/src
+
+ARG CACHE_BUST
+
+# Grasp planning
+RUN git clone --recurse-submodules https://github.com/LeoSc4/aip_grasp_planning.git
+
+
+# ODTF Interfaces forked by AIP2
+RUN git clone https://github.com/eshan-savla/object_detector_tensorflow.git
+RUN mv ./object_detector_tensorflow/ros/object_detector_tensorflow_interfaces . && \
+    rm -rf ./object_detector_tensorflow
+
+# Packing Planning Interfaces
+RUN git clone https://github.com/SchmittAndreas/aip_packing_algorithm.git
+RUN mv ./aip_packing_algorithm/aip_packing_planning_interfaces . && \
+    rm -rf ./aip_packing_algorithm
 
 RUN mkdir -p /home/"$USER"/ros_ws/pcl_recordings
 
 RUN chown -c $USER:$USER /home/"$USER"/ros_ws/pcl_recordings
+
+##############################################################################
+##                                 Build ROS and run                        ##
+##############################################################################
 
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/ros_ws && colcon build \
 --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -90,6 +108,6 @@ WORKDIR /home/$USER/ros_ws
 COPY --chown=$USER --chmod=0755 ./entrypoint.sh /home/$USER/ros_ws/entrypoint.sh
 CMD ["/bin/bash"]
 
-ENTRYPOINT ["./entrypoint.sh"]
+# ENTRYPOINT ["./entrypoint.sh"]
 
 
