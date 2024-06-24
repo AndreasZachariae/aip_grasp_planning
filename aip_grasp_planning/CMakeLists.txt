@@ -13,7 +13,10 @@ find_package(pcl_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(aip_packing_planning_interfaces REQUIRED)
 find_package(aip_grasp_planning_interfaces REQUIRED)
+find_package(point_transformation_interfaces REQUIRED)
+find_package(point_transformation REQUIRED)
 
 
 #find directory to includ .h files
@@ -27,7 +30,10 @@ set(DEPENDENCIES
   ament_index_cpp
   pcl_ros
   sensor_msgs
+  aip_packing_planning_interfaces
   aip_grasp_planning_interfaces
+  point_transformation_interfaces
+  point_transformation
 )
 
 file (GLOB SOURCES_NODES src/aip_grasp_planning/*.cpp)

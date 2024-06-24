@@ -13,7 +13,8 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>aip_grasp_planning_interfaces</depend>
-
+  <depend>point_transformation_interfaces</depend>
+  <depend>point_transformation</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
