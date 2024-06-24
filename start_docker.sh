@@ -9,13 +9,12 @@ docker run \
     -it \
     -e DISPLAY=$DISPLAY \
     --env-file .env \
-    -v $PWD/src:/home/robot/ros_ws/src:rw \
     -v $PWD/pcl_recordings:/home/robot/ros_ws/pcl_recordings:rw \
-    -v $PWD/.vscode:/home/robot/dependencies_ws/src/.vscode \
-    -v $PWD/dependencies:/home/robot/dependencies_ws/src \
+    -v $PWD:/home/robot/ros_ws/src/aip_grasp_planning:rw \
     -v /dev:/dev  \
     --net host \
     --rm \
     --ipc host \
     iras/aip_grasp_planning:humble
 # --env-file .env \ set environment including ROS_DOMAIN_ID
+    # -v $PWD:/home/robot/ros_ws/src/aip_grasp_planning:rw \
