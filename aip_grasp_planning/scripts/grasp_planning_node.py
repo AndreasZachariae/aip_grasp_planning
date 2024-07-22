@@ -12,6 +12,7 @@ from sensor_msgs.msg import Image
 from point_transformation_interfaces.srv import PixelToPoint
 from aip_grasp_planning_interfaces.srv import GraspObjectSurfaceNormal
 from aip_grasp_planning_interfaces.srv import GraspPlanning
+from aip_grasp_planning_interfaces.msg import CylinderCombination
 
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
@@ -22,7 +23,22 @@ class GraspPlanningNode(Node):
     It subscribes to the '/stereo/depth' topic, calls the 'PixelToPoint' service provided by the 'point_transformation_node',
     and handles the response asynchronously.
     """
+   # depth_image = request.depth_image
 
+        # for mask in masks:
+        # # Convert the mask image to a list of pixels
+        #     pixels = self.convert_image_mask_to_pixel_indices(mask)
+
+        #     # Call the 'pixel_to_point' method to convert the pixels to points
+        #     points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+
+        #     # Call the 'grasp_pose_client' service to get the grasp poses
+        #     grasp_pose_request = GraspObjectSurfaceNormal.Request()
+        #     grasp_pose_request.masked_points = points
+        #     grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)
+
+        #     # # Process the grasp pose response and extract the grasp poses
+        #     # grasp_pose = grasp_pose_response.grasp_pose
     def __init__(self):
         super().__init__('grasp_planning_node')
         self.service_group = MutuallyExclusiveCallbackGroup() #callback group controls the execution of the callback function 
@@ -56,25 +72,27 @@ class GraspPlanningNode(Node):
         # Get the reference image from the odtf part of the request        
         depth_image = request.reference_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
-        for mask in masks:
-        # Convert the mask image to a list of pixels
-            pixels = self.convert_image_mask_to_pixel_indices(mask)
+        # for mask in masks:
+        # # Convert the mask image to a list of pixels
+        #     pixels = self.convert_image_mask_to_pixel_indices(mask)
 
-            # Call the 'pixel_to_point' method to convert the pixels to points
-            points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+        #     # Call the 'pixel_to_point' method to convert the pixels to points
+        #     points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
 
             # Call the 'grasp_pose_client' service to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
             grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
             grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
 
-            # # Process the grasp pose response and extract the grasp poses
-            # grasp_pose = grasp_pose_response.grasp_pose
+        #     # # Process the grasp pose response and extract the grasp poses
+        #     # grasp_pose = grasp_pose_response.grasp_pose
 
         # Return the response with the calculated grasp poses
+        self.get_logger().info('Received request for Grasp Planning')
+        request = request
         response.grasp_pose = [
-            Pose(position=Point(x=0.1, y=0.2, z=0.3), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=0.2, y=0.3, z=0.4), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=0.7, y=1.05, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=0.7, y=0.95, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
         ]
 
         # ToDo: Add Logic to decide which cylinders to use
@@ -83,8 +101,8 @@ class GraspPlanningNode(Node):
 
         # ToDo: Add Logic to decide which place poses to use
         response.place_pose = [
-            Pose(position=Point(x=0.0, y=0.0, z=0.0), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=0.1, y=0.1, z=0.1), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=1.05, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         ]
 
         return response
