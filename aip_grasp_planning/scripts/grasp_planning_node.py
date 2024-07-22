@@ -62,9 +62,15 @@ class GraspPlanningNode(Node):
         while not self.grasp_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('GraspObjectSurfaceNormal service not available, waiting again...')
 
-    def grasp_planning_logic(self, request, response):
-        # masks = request.masks
-        # depth_image = request.depth_image
+    def grasp_planning_logic(self, request, response): 
+    
+        # Get all the masks from the odtf part of the request
+        masks = []
+        for detection in request.detections.detections:
+            masks.append(detection.mask)
+
+        # Get the reference image from the odtf part of the request        
+        depth_image = request.reference_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
         # for mask in masks:
         # # Convert the mask image to a list of pixels
@@ -73,10 +79,10 @@ class GraspPlanningNode(Node):
         #     # Call the 'pixel_to_point' method to convert the pixels to points
         #     points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
 
-        #     # Call the 'grasp_pose_client' service to get the grasp poses
-        #     grasp_pose_request = GraspObjectSurfaceNormal.Request()
-        #     grasp_pose_request.masked_points = points
-        #     grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)
+            # Call the 'grasp_pose_client' service to get the grasp poses
+            grasp_pose_request = GraspObjectSurfaceNormal.Request()
+            grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
+            grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
 
         #     # # Process the grasp pose response and extract the grasp poses
         #     # grasp_pose = grasp_pose_response.grasp_pose
@@ -88,11 +94,12 @@ class GraspPlanningNode(Node):
             Pose(position=Point(x=0.7, y=1.05, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
             Pose(position=Point(x=0.7, y=0.95, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
         ]
-        cylinds_comb = CylinderCombination()
-        cylinds_comb.cylinder_ids = [3]
-        cylinds_combs2 = CylinderCombination()
-        cylinds_combs2.cylinder_ids = [1]
-        response.cylinder_ids = [cylinds_comb, cylinds_combs2]
+
+        # ToDo: Add Logic to decide which cylinders to use
+
+        response.cylinder_ids = [1, 2]
+
+        # ToDo: Add Logic to decide which place poses to use
         response.place_pose = [
             Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
             Pose(position=Point(x=1.05, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
@@ -171,31 +178,34 @@ class GraspPlanningNode(Node):
         self.get_logger().info(str(ptp_response.points))
         return ptp_response.points
     
-    def highest_probability_mask(self, odtf_response):
-        # Select the mask with the highest probability     
-        max_prob = -1
-        best_detection = None
+
+# Choose the mask with the highest probability
+
+    # def highest_probability_mask(self, odtf_response):
+    #     # Select the mask with the highest probability     
+    #     max_prob = -1
+    #     best_detection = None
         
-        for detection in odtf_response.detections.detections:
-            if detection.probability > max_prob:
-                max_prob = detection.probability
-                best_detection = detection
-            if best_detection is not None:
-                self.get_logger().info('Detection with highest probability: %s' % str(best_detection.mask))
-            else:
-                self.get_logger().info('No detections found')
+    #     for detection in odtf_response.detections.detections:
+    #         if detection.probability > max_prob:
+    #             max_prob = detection.probability
+    #             best_detection = detection
+    #         if best_detection is not None:
+    #             self.get_logger().info('Detection with highest probability: %s' % str(best_detection.mask))
+    #         else:
+    #             self.get_logger().info('No detections found')
    
-        ## To-Do: Position the mask correctly in the depth image frame based on the bounding box and center point of the bounding box ##
+    #     ## To-Do: Position the mask correctly in the depth image frame based on the bounding box and center point of the bounding box ##
 
-        width_bb = int(best_detection.mask.width)
-        height_bb = int(best_detection.mask.height)
+    #     width_bb = int(best_detection.mask.width)
+    #     height_bb = int(best_detection.mask.height)
 
-        x_offset = int(best_detection.center.x - width_bb/2)
-        y_offset = int(best_detection.center.y + height_bb/2)     #sensor_msgs/Image has the origin at the top left corner  
+    #     x_offset = int(best_detection.center.x - width_bb/2)
+    #     y_offset = int(best_detection.center.y + height_bb/2)     #sensor_msgs/Image has the origin at the top left corner  
 
-        best_mask = [(i, j) for i in range(x_offset, x_offset + width_bb) for j in range(y_offset - height_bb, y_offset)]  
+    #     best_mask = [(i, j) for i in range(x_offset, x_offset + width_bb) for j in range(y_offset - height_bb, y_offset)]  
        
-        return best_mask
+    #     return best_mask
 
     ########################
 
