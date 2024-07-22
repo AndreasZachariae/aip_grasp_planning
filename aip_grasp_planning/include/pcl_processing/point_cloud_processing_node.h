@@ -11,6 +11,7 @@
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/transform.hpp>
 #include <aip_grasp_planning_interfaces/srv/grasp_object_surface_normal.hpp>
+#include <pcl/io/pcd_io.h>
 
 class PointCloudProcessingNode : public rclcpp::Node
 {

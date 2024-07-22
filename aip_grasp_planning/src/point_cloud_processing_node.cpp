@@ -19,9 +19,12 @@
         pose.orientation.z = 0.0;
         pose.orientation.w = 1.0;
 
-        // // Extract the point cloud from the request
-        // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        // cloud = this->transformPointsToPointCloud(request->masked_points);
+        // Extract the point cloud from the request
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+        cloud = this->transformPointsToPointCloud(request->masked_points);
+
+        // Save the point cloud as a PCD file
+        pcl::io::savePCDFileASCII("./cloud.pcd", cloud);
         // pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
 
         // Set the response
