@@ -24,7 +24,7 @@
         cloud = this->transformPointsToPointCloud(request->masked_points);
 
         // Save the point cloud as a PCD file
-        pcl::io::savePCDFileASCII("./cloud.pcd", cloud);
+        pcl::io::savePCDFileASCII("./cloud.pcd", *cloud);
         // pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
 
         // Set the response
