@@ -78,8 +78,9 @@ WORKDIR /home/$USER/ros_ws/src
 ARG CACHE_BUST
 
 # Grasp planning
-RUN git clone --recurse-submodules https://github.com/LeoSc4/aip_grasp_planning.git
+# RUN git clone --recurse-submodules https://github.com/LeoSc4/aip_grasp_planning.git
 
+COPY --chown=user:group . /home/$USER/ros_ws/src/aip_grasp_planning
 
 # ODTF Interfaces forked by AIP2
 RUN git clone https://github.com/eshan-savla/object_detector_tensorflow.git
