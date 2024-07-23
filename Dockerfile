@@ -67,7 +67,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y \
     ros-$ROS_DISTRO-rviz2
 
 USER $USER
-RUN pip install numpy scipy open3d
+RUN pip install numpy scipy open3d opencv-python
 
 ##############################################################################
 ##                                 User Dependecies                         ##
@@ -99,7 +99,7 @@ RUN chown -c $USER:$USER /home/"$USER"/ros_ws/pcl_recordings
 ##                                 Build ROS and run                        ##
 ##############################################################################
 
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && cd /home/"$USER"/ros_ws && colcon build \
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build \
 --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 RUN echo "source /home/$USER/ros_ws/install/setup.bash" >> /home/$USER/.bashrc
 

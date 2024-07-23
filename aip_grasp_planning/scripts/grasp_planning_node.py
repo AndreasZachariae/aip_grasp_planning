@@ -15,6 +15,13 @@ from aip_grasp_planning_interfaces.srv import GraspPlanning
 from aip_grasp_planning_interfaces.msg import CylinderCombination
 
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+import cv2
+from cv_bridge import CvBridge
+
+
+# import cv2
+# from cv_bridge import CvBridge
+# import numpy as np
 
 class GraspPlanningNode(Node):
     """
@@ -62,27 +69,53 @@ class GraspPlanningNode(Node):
         while not self.grasp_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('GraspObjectSurfaceNormal service not available, waiting again...')
 
+    # def mask_to_numpy(mask_msg):
+    #     bridge = CvBridge()
+    #     # Konvertieren von sensor_msgs/Image zu einem OpenCV-Bild
+    #     cv_image = bridge.imgmsg_to_cv2(mask_msg, desired_encoding='passthrough')
+    #     # Konvertieren des OpenCV-Bildes in ein Numpy-Array
+    #     mask_array = np.array(cv_image, dtype=np.uint8)
+    #     return mask_array
+
+    # def ros_to_cv_image(self, ros_image):
+    #     # depending on ROS and CV2 versions
+    #     cv_image = cv_bridge.CvBridge().imgmsg_to_cv2(ros_image, "bgr8")
+    #     return cv_image
+
     def grasp_planning_logic(self, request, response): 
-    
         # Get all the masks from the odtf part of the request
         masks = []
         for detection in request.detections.detections:
             masks.append(detection.mask)
 
-        # Get the reference image from the odtf part of the request        
-        depth_image = request.reference_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
+        depth_image = request.depth_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
-        # for mask in masks:
-        # # Convert the mask image to a list of pixels
-        #     pixels = self.convert_image_mask_to_pixel_indices(mask)
+        # # Konvertieren des ROS-Bildes in ein OpenCV-Bild
+        # cv_depth_image = self.ros_to_cv_image(depth_image)
+        # cv2.imwrite('depth_image.png', cv_depth_image)
+    
+        # # Speichern der Masken
+        # for i, mask_msg in enumerate(masks):
+        #     # Konvertieren der Maske von sensor_msgs/Image zu einem Numpy-Array
+        #     mask_array = self.mask_to_numpy(mask_msg)
+        #     # Speichern der konvertierten Maske
+        #     np.savetxt(f'mask_{i}.txt', mask_array, fmt='%d')
 
-        #     # Call the 'pixel_to_point' method to convert the pixels to points
-        #     points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+### Converting Mask to Pixel and Pixel to MaskedPoints and then to Grasp Pose
+
+        for mask in masks:
+        # Convert the mask image to a list of pixels
+            pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.height, depth_image.width)
+
+            # Call the 'pixel_to_point' method to convert the pixels to points
+            points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
 
             # Call the 'grasp_pose_client' service to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
             grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
             grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
+
+
 
         #     # # Process the grasp pose response and extract the grasp poses
         #     # grasp_pose = grasp_pose_response.grasp_pose
@@ -97,21 +130,30 @@ class GraspPlanningNode(Node):
 
         # ToDo: Add Logic to decide which cylinders to use
 
-        response.cylinder_ids = [1, 2]
+        cylinder_combination = CylinderCombination()
+        cylinder_combination.cylinder_ids = [1, 2]
+        response.cylinder_ids = [cylinder_combination]
 
         # ToDo: Add Logic to decide which place poses to use
         response.place_pose = [
             Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=1.05, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+            Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         ]
 
         return response
 
-    def convert_image_mask_to_pixel_indices(self, mask):
+    def convert_image_mask_to_pixel_indices(self, mask, depth_width, depth_height):
         pixels = []
-        for i in range(mask.height):
-            for j in range(mask.width):
-                if mask.data[i * mask.step + j] != 0:
+
+        bridge = CvBridge()
+        # Konvertieren von sensor_msgs/Image zu einem OpenCV-Bild
+        cv_image = bridge.imgmsg_to_cv2(mask, desired_encoding='passthrough')
+        # Konvertieren des OpenCV-Bildes in ein Numpy-Array
+        resized_image = cv2.resize(cv_image, (depth_height, depth_width))
+
+        for i in range(depth_height):
+            for j in range(depth_width):
+                if resized_image[j, i] == 1:
                     pixels.append((j, i))
         return pixels
         

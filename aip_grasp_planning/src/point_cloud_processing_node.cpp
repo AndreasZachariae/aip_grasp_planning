@@ -22,10 +22,14 @@
         // Extract the point cloud from the request
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         cloud = this->transformPointsToPointCloud(request->masked_points);
-
+        
         // Save the point cloud as a PCD file
-        pcl::io::savePCDFileASCII("./cloud.pcd", cloud);
+        //
+        pcl::io::savePCDFileASCII("./src/aip_grasp_planning/cloud.pcd", *cloud);
         // pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
+
+        RCLCPP_INFO(this->get_logger(), "Point cloud saved as PCD file");
+
 
         // Set the response
         response->surface_normal_to_grasp = pose;
