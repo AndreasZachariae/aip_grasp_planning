@@ -15,6 +15,8 @@ from aip_grasp_planning_interfaces.srv import GraspPlanning
 from aip_grasp_planning_interfaces.msg import CylinderCombination
 
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
+from cylinder_selection import CylinderSelection
 import cv2
 from cv_bridge import CvBridge
 
@@ -83,60 +85,100 @@ class GraspPlanningNode(Node):
     #     return cv_image
 
     def grasp_planning_logic(self, request, response): 
+        
+        self.get_logger().info('Received request for Grasp Planning')
+    
         # Get all the masks from the odtf part of the request
         masks = []
         for detection in request.detections.detections:
             masks.append(detection.mask)
 
-        depth_image = request.depth_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
+        # Get the reference image from the odtf part of the request        
+        depth_image = request.reference_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
-        # # Konvertieren des ROS-Bildes in ein OpenCV-Bild
-        # cv_depth_image = self.ros_to_cv_image(depth_image)
-        # cv2.imwrite('depth_image.png', cv_depth_image)
-    
-        # # Speichern der Masken
-        # for i, mask_msg in enumerate(masks):
-        #     # Konvertieren der Maske von sensor_msgs/Image zu einem Numpy-Array
-        #     mask_array = self.mask_to_numpy(mask_msg)
-        #     # Speichern der konvertierten Maske
-        #     np.savetxt(f'mask_{i}.txt', mask_array, fmt='%d')
-
-### Converting Mask to Pixel and Pixel to MaskedPoints and then to Grasp Pose
+        self.get_logger().info("Received " + str(len(masks)) + "masks.")
 
         for mask in masks:
+            print("in masks")
         # Convert the mask image to a list of pixels
-            pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.height, depth_image.width)
+            pixels = self.convert_image_mask_to_pixel_indices(mask)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
             points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+
+            self.get_logger().info("Converted masks to pixel indices and to points.")
 
             # Call the 'grasp_pose_client' service to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
             grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
             grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
+            self.get_logger().info("Received grasp pose from point cloud processing node.")
+            self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.grasp_pose))
+
+        ### Cylinder Selection ###
+
+        self.get_logger().info("Extracting package information for cylinder selection.")
+
+        # Get the package sequence from the request        
+        package_sequence = request.package_sequence     #aip_packing_planning_interfaces/PackageSequence package_sequence
+        
+        # Extract the weight of the packages
+        packages_weights = []
+        for package in package_sequence.packages:
+            packages_weights.append(package.weight)
+
+        # Extract the dimensions of the packages
+        #packages_dimensions = request.package_sequence.packages.dimensions       #geometry_msgs/Vector3 dimensions
+        packages_length = []
+        for package in package_sequence.packages:
+            packages_length.append(package.dimensions.x)
+        
+        packages_width = []
+        for package in package_sequence.packages:
+            packages_width.append(package.dimensions.y)
+        
+        
+        # Choose Cylinder per package based on the package dimensions and weight
+        index_msgs, cylinder_ids_per_package, tcps_cylinder_offsets = CylinderSelection().choose_cylinder(packages_weights, packages_length, packages_width) #, packages_height)
+        self.get_logger().info("Cylinder IDs per package: " + str(cylinder_ids_per_package))
+        self.get_logger().info("TCP offsets per package: " + str(tcps_cylinder_offsets))
+
+        response.cylinder_ids = cylinder_ids_per_package
+
+        # # Fixed response for now
+        # cylinder_combination = CylinderCombination()
+        # cylinder_combination.cylinder_ids = [1, 2]
+        # response.cylinder_ids = [cylinder_combination]
 
 
+        ### Grasp Pose with added TCP offsets ###
+        new_grasp_pose = grasp_pose_response * tcp_offset
+        self.get_logger().info("New Grasp Pose including offsets: " + str(new_grasp_pose))
 
-        #     # # Process the grasp pose response and extract the grasp poses
-        #     # grasp_pose = grasp_pose_response.grasp_pose
+        # Fixed cylinder offset index for now         
+        tcp_offset = tcps_cylinder_offsets[0]
+        self.get_logger().info("TCP Offset with Index 0: " + str(tcp_offset))
 
+        # For now: Mock up with fixed grasp poses
         # Return the response with the calculated grasp poses
-        self.get_logger().info('Received request for Grasp Planning')
-        request = request
         response.grasp_pose = [
             Pose(position=Point(x=0.7, y=1.05, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
             Pose(position=Point(x=0.7, y=0.95, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
         ]
 
-        # ToDo: Add Logic to decide which cylinders to use
 
-        cylinder_combination = CylinderCombination()
-        cylinder_combination.cylinder_ids = [1, 2]
-        response.cylinder_ids = [cylinder_combination]
-
+        ### Place Pose Definition ###
         # ToDo: Add Logic to decide which place poses to use
+        
+        # height not necessary for cylinder selection
+        # packages_height = []
+        # for package in package_sequence.packages:
+        #     packages_height.append(package.dimensions.z)
+        
+        # Fixed response for now
         response.place_pose = [
             Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+            Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         ]
 
