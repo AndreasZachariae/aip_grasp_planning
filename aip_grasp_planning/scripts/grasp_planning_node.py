@@ -16,7 +16,8 @@ from aip_grasp_planning_interfaces.msg import CylinderCombination
 
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
-from cylinder_selection import CylinderSelection
+
+from aip_grasp_planning.cylinder_selection import CylinderSelection
 import cv2
 from cv_bridge import CvBridge
 
@@ -92,28 +93,32 @@ class GraspPlanningNode(Node):
         masks = []
         for detection in request.detections.detections:
             masks.append(detection.mask)
-
+        
         # Get the reference image from the odtf part of the request        
-        depth_image = request.reference_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
+        depth_image = request.depth_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
         self.get_logger().info("Received " + str(len(masks)) + "masks.")
-
+        grasp_poses = []
         for mask in masks:
             print("in masks")
         # Convert the mask image to a list of pixels
-            pixels = self.convert_image_mask_to_pixel_indices(mask)
+            pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
             points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
 
             self.get_logger().info("Converted masks to pixel indices and to points.")
 
-            # Call the 'grasp_pose_client' service to get the grasp poses
+            # Call the 'grasp_pose_client' servicefilterCloud to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
             grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
-            grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
+            future = self.grasp_pose_client.call_async(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
+            rclpy.spin_until_future_complete(self, future)
+            grasp_pose_response = future.result()
             self.get_logger().info("Received grasp pose from point cloud processing node.")
-            self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.grasp_pose))
+            self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.surface_normal_to_grasp))
+
+            grasp_poses.append(grasp_pose_response.surface_normal_to_grasp)
 
         ### Cylinder Selection ###
 
@@ -145,15 +150,15 @@ class GraspPlanningNode(Node):
 
         response.cylinder_ids = cylinder_ids_per_package
 
-        # # Fixed response for now
-        # cylinder_combination = CylinderCombination()
-        # cylinder_combination.cylinder_ids = [1, 2]
-        # response.cylinder_ids = [cylinder_combination]
+        # Fixed response for now
+        cylinder_combination = CylinderCombination()
+        cylinder_combination.cylinder_ids = [1, 2]
+        response.cylinder_ids = [cylinder_combination]
 
 
-        ### Grasp Pose with added TCP offsets ###
-        new_grasp_pose = grasp_pose_response * tcp_offset
-        self.get_logger().info("New Grasp Pose including offsets: " + str(new_grasp_pose))
+        ## Grasp Pose with added TCP offsets ###
+        # new_grasp_pose = grasp_pose_response * tcp_offset
+        # self.get_logger().info("New Grasp Pose including offsets: " + str(new_grasp_pose))
 
         # Fixed cylinder offset index for now         
         tcp_offset = tcps_cylinder_offsets[0]
@@ -161,10 +166,7 @@ class GraspPlanningNode(Node):
 
         # For now: Mock up with fixed grasp poses
         # Return the response with the calculated grasp poses
-        response.grasp_pose = [
-            Pose(position=Point(x=0.7, y=1.05, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=0.7, y=0.95, z=1.42), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-        ]
+        response.grasp_pose = grasp_poses
 
 
         ### Place Pose Definition ###
@@ -179,18 +181,18 @@ class GraspPlanningNode(Node):
         response.place_pose = [
             Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-            Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        ]
+        ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
 
         return response
 
     def convert_image_mask_to_pixel_indices(self, mask, depth_width, depth_height):
         pixels = []
-
         bridge = CvBridge()
+        self.get_logger().info(f"Mask shape: {mask.height} x {mask.width}")
         # Konvertieren von sensor_msgs/Image zu einem OpenCV-Bild
         cv_image = bridge.imgmsg_to_cv2(mask, desired_encoding='passthrough')
         # Konvertieren des OpenCV-Bildes in ein Numpy-Array
+        self.get_logger().info(f"Mask shape: {cv_image.shape}")
         resized_image = cv2.resize(cv_image, (depth_height, depth_width))
 
         for i in range(depth_height):
@@ -256,7 +258,7 @@ class GraspPlanningNode(Node):
         rclpy.spin_until_future_complete(self, future)
         ptp_response = future.result()
         if ptp_response is not None:
-            self.get_logger().info('Received response for PtP: %s' % str(future.result().points))
+            self.get_logger().debug('Received response for PtP: %s' % str(future.result().points))
         else:
             self.get_logger().error('Exception while calling PtP service: %r' % future.exception())
         self.get_logger().info(str(ptp_response.points))
