@@ -1,5 +1,5 @@
 from aip_grasp_planning_interfaces.msg import CylinderCombination
-from utils_transform import Affine
+from aip_grasp_planning.utils_transform import Affine
 
 class CylinderSelection:
     def __init__(self):
@@ -9,7 +9,7 @@ class CylinderSelection:
         # Vorverarbeitung:
         
         # Affine Offsets wieder integrieren und ausgeben für die Greifpunktplanung 
-        
+    @staticmethod    
     def choose_cylinder(packages_weights, packages_length, packages_width): #packages_height
         # Original source code from former student projects but adapted to match our ROS2 integration
 
