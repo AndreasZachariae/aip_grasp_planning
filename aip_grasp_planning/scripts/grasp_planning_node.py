@@ -8,6 +8,8 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import Image
+from aip_grasp_planning.utils_transform import Affine
+
 
 from point_transformation_interfaces.srv import PixelToPoint
 from aip_grasp_planning_interfaces.srv import GraspObjectSurfaceNormal
@@ -80,9 +82,11 @@ class GraspPlanningNode(Node):
         # Get all the masks from the odtf part of the request
         masks = []
         class_names = []
+        orientations = []
         for detection in request.detections.detections:
             masks.append(detection.mask)
             class_names.append(detection.class_name)
+            orientations.append(detection.orientation)
 
         # Get the reference image from the odtf part of the request        
         depth_image = request.depth_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
@@ -120,7 +124,25 @@ class GraspPlanningNode(Node):
             self.get_logger().info("Received grasp pose from point cloud processing node.")
             self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.surface_normal_to_grasp))
 
-            grasp_poses.append(grasp_pose_response.surface_normal_to_grasp)
+            # TODO for calculating the grasp pose with true surface normal vector
+            # # Define a default homogeneous matrix
+            # default_pose = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+            # # Convert the grasp pose to a homogeneous matrix
+            # grasp_pose_matrix = default_pose * Affine()
+
+            orientation = orientations[mask_index]
+            affine = Affine(rotation=[orientation.x, orientation.y, orientation.z, orientation.w])
+            grasp_pose_matrix = Affine(translation=[grasp_pose_response.surface_normal_to_grasp.x, grasp_pose_response.surface_normal_to_grasp.y, grasp_pose_response.surface_normal_to_grasp.z]) * affine 
+            grasp_pose = Pose()
+            grasp_pose.position.x = grasp_pose_matrix.translation[0]
+            grasp_pose.position.y = grasp_pose_matrix.translation[1]
+            grasp_pose.position.z = grasp_pose_matrix.translation[2]
+            grasp_pose.orientation.x = grasp_pose_matrix.quat[0]
+            grasp_pose.orientation.y = grasp_pose_matrix.quat[1]
+            grasp_pose.orientation.z = grasp_pose_matrix.quat[2]
+            grasp_pose.orientation.w = grasp_pose_matrix.quat[3]
+
+            grasp_poses.append(grasp_pose)
 
         ### Cylinder Selection ###
 
