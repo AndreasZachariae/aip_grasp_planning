@@ -261,9 +261,9 @@ class GraspPlanningNode(Node):
             # orientation_pick =                            #match coresponding orientation from the detection with correct index
             # orientation_pack = package.rotation_index
             place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x, 
-                                           y=container_corner.y - package.place_coordinates.y, 
-                                           z=container_corner.z + package.dimensions.z), 
+                            position=Point(x=container_corner.x + package.place_coordinates.x + tcp_offset.translation[0], 
+                                           y=container_corner.y - package.place_coordinates.y + tcp_offset.translation[1], 
+                                           z=container_corner.z + package.dimensions.z + tcp_offset.translation[2] + 0.15),
                             orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
             place_poses.append(place_pose)
 
