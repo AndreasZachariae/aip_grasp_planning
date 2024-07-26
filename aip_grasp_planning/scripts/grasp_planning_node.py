@@ -172,16 +172,44 @@ class GraspPlanningNode(Node):
         ### Place Pose Definition ###
         # ToDo: Add Logic to decide which place poses to use
         
-        # height not necessary for cylinder selection
+        # Container corner reference 
+        container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
+
+        # Retrieve target orientation and place coordinates 
+        packages_target_orientations = [] #uint32 rotation_index from Package.msg
+        for package in package_sequence.packages:
+            packages_target_orientations.append(package.rotation_index) #possible values: 10, 30
+
+        # package_target_place_coordinates = []
+        # for package in package_sequence.packages:
+        #     package_target_place_coordinates.append(package.place_coordinates)
+
+        # # Retrieve package height // length + width + weight are already extracted above
         # packages_height = []
         # for package in package_sequence.packages:
         #     packages_height.append(package.dimensions.z)
-        
-        # Fixed response for now
-        response.place_pose = [
-            Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+
+
+        # Calculate the place pose based on the target orientation and place coordinates
+        place_poses = []
+        for package in package_sequence.packages:
+            self.get_logger().info("Package: " + str(package))
+            # orientation_pick =                            #match coresponding orientation from the detection with correct index
+            # orientation_pack = package.rotation_index
+            place_pose = Pose(
+                            position=Point(x=container_corner.x + package.place_coordinates.x, 
+                                           y=container_corner.y - package.place_coordinates.y, 
+                                           z=container_corner.z + package.dimensions.z), 
+                            orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
+            place_poses.append(place_pose)
+
+        response.place_pose = place_poses
+
+        # # FIXED Place Pose response for now
+        # response.place_pose = [
+        #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+        #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+        # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
 
         return response
 
