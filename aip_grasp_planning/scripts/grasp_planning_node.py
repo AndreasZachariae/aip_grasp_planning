@@ -176,7 +176,7 @@ class GraspPlanningNode(Node):
 
         # Retrieve target orientation and place coordinates 
         packages_target_orientations = [] #uint32 rotation_index from Package.msg
-        for package in package_sequence.packages:
+        for package in packages:
             packages_target_orientations.append(package.rotation_index) #possible values: 10, 30
 
         # package_target_place_coordinates = []
@@ -191,7 +191,7 @@ class GraspPlanningNode(Node):
 
         # Calculate the place pose based on the target orientation and place coordinates
         place_poses = []
-        for package in package_sequence.packages:
+        for package in packages:
             self.get_logger().info("Package: " + str(package))
             # orientation_pick =                            #match coresponding orientation from the detection with correct index
             # orientation_pack = package.rotation_index
