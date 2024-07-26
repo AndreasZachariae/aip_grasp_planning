@@ -80,18 +80,6 @@ class GraspPlanningNode(Node):
         while not self.grasp_pose_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('GraspObjectSurfaceNormal service not available, waiting again...')
 
-    # def mask_to_numpy(mask_msg):
-    #     bridge = CvBridge()
-    #     # Konvertieren von sensor_msgs/Image zu einem OpenCV-Bild
-    #     cv_image = bridge.imgmsg_to_cv2(mask_msg, desired_encoding='passthrough')
-    #     # Konvertieren des OpenCV-Bildes in ein Numpy-Array
-    #     mask_array = np.array(cv_image, dtype=np.uint8)
-    #     return mask_array
-
-    # def ros_to_cv_image(self, ros_image):
-    #     # depending on ROS and CV2 versions
-    #     cv_image = cv_bridge.CvBridge().imgmsg_to_cv2(ros_image, "bgr8")
-    #     return cv_image
 
     def grasp_planning_logic(self, request, response): 
         
@@ -99,17 +87,31 @@ class GraspPlanningNode(Node):
     
         # Get all the masks from the odtf part of the request
         masks = []
+        class_names = []
         for detection in request.detections.detections:
             masks.append(detection.mask)
-        
+            class_names.append(detection.class_name)
+
         # Get the reference image from the odtf part of the request        
         depth_image = request.depth_image        # sensor_msgs/Image reference_image as part of detection<detections<DetectObject.srv (-> devel Branch)
 
-        self.get_logger().info("Received " + str(len(masks)) + "masks.")
+        # Get the package sequence from the request        
+        packages = request.package_sequence.packages
+        pack_sequence_class_names = []
+        for package in packages:
+            pack_sequence_class_names.append(package.class_name)
+
         grasp_poses = []
-        for mask in masks:
-            print("in masks")
-        # Convert the mask image to a list of pixels
+        for pack_sequence_class_name in pack_sequence_class_names:
+            if pack_sequence_class_name not in class_names:
+                self.get_logger().info(f"{pack_sequence_class_name} not found in the detected objects.")
+                self.get_logger().info("Abort grasp planning for this pack sequence.")
+                return
+
+            mask_index = class_names.index(pack_sequence_class_name)
+            mask = masks[mask_index]
+
+            # Convert the mask image to a list of pixels
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
@@ -141,23 +143,20 @@ class GraspPlanningNode(Node):
         ### Cylinder Selection ###
 
         self.get_logger().info("Extracting package information for cylinder selection.")
-
-        # Get the package sequence from the request        
-        package_sequence = request.package_sequence     #aip_packing_planning_interfaces/PackageSequence package_sequence
         
         # Extract the weight of the packages
         packages_weights = []
-        for package in package_sequence.packages:
+        for package in packages:
             packages_weights.append(package.weight)
 
         # Extract the dimensions of the packages
         #packages_dimensions = request.package_sequence.packages.dimensions       #geometry_msgs/Vector3 dimensions
         packages_length = []
-        for package in package_sequence.packages:
+        for package in packages:
             packages_length.append(package.dimensions.x)
         
         packages_width = []
-        for package in package_sequence.packages:
+        for package in packages:
             packages_width.append(package.dimensions.y)
         
         
@@ -237,16 +236,44 @@ class GraspPlanningNode(Node):
         ### Place Pose Definition ###
         # ToDo: Add Logic to decide which place poses to use
         
-        # height not necessary for cylinder selection
+        # Container corner reference 
+        container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
+
+        # Retrieve target orientation and place coordinates 
+        packages_target_orientations = [] #uint32 rotation_index from Package.msg
+        for package in packages:
+            packages_target_orientations.append(package.rotation_index) #possible values: 10, 30
+
+        # package_target_place_coordinates = []
+        # for package in package_sequence.packages:
+        #     package_target_place_coordinates.append(package.place_coordinates)
+
+        # # Retrieve package height // length + width + weight are already extracted above
         # packages_height = []
         # for package in package_sequence.packages:
         #     packages_height.append(package.dimensions.z)
-        
-        # Fixed response for now
-        response.place_pose = [
-            Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-            Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+
+
+        # Calculate the place pose based on the target orientation and place coordinates
+        place_poses = []
+        for package in packages:
+            self.get_logger().info("Package: " + str(package))
+            # orientation_pick =                            #match coresponding orientation from the detection with correct index
+            # orientation_pack = package.rotation_index
+            place_pose = Pose(
+                            position=Point(x=container_corner.x + package.place_coordinates.x, 
+                                           y=container_corner.y - package.place_coordinates.y, 
+                                           z=container_corner.z + package.dimensions.z), 
+                            orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
+            place_poses.append(place_pose)
+
+        response.place_pose = place_poses
+
+        # # FIXED Place Pose response for now
+        # response.place_pose = [
+        #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+        #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+        # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
 
         return response
 
