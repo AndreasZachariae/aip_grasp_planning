@@ -73,7 +73,7 @@ class GraspPlanningNode(Node):
             self.get_logger().info('GraspObjectSurfaceNormal service not available, waiting again...')
 
 
-    def grasp_planning_logic(self, request, response): 
+    async def grasp_planning_logic(self, request, response): 
         
         self.get_logger().info('Received request for Grasp Planning')
     
@@ -107,22 +107,29 @@ class GraspPlanningNode(Node):
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
-            points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
+            future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image)
+
+            # Wait for the 'PixelToPoint' service to return the response
+            await future
+            point_response = future.result()
+            
 
             self.get_logger().info("Converted masks to pixel indices and to points.")
 
             # Call the 'grasp_pose_client' servicefilterCloud to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
-            grasp_pose_request.masked_points = points       #request type = geometry_msgs/Point[]
+            
+            grasp_pose_request.masked_points = point_response.points       #request type = geometry_msgs/Point[]
             future = self.grasp_pose_client.call_async(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
-            rclpy.spin_until_future_complete(self, future)
+            
+            await future
             grasp_pose_response = future.result()
             self.get_logger().info("Received grasp pose from point cloud processing node.")
             self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.surface_normal_to_grasp))
 
             grasp_poses.append(grasp_pose_response.surface_normal_to_grasp)
 
-        ### Cylinder Selection ###
+        ## Cylinder Selection ###
 
         self.get_logger().info("Extracting package information for cylinder selection.")
         
@@ -155,7 +162,7 @@ class GraspPlanningNode(Node):
         response.cylinder_ids = [cylinder_combination]
 
 
-        ## Grasp Pose with added TCP offsets ###
+        # # Grasp Pose with added TCP offsets ###
         # new_grasp_pose = grasp_pose_response * tcp_offset
         # self.get_logger().info("New Grasp Pose including offsets: " + str(new_grasp_pose))
 
@@ -209,7 +216,10 @@ class GraspPlanningNode(Node):
         #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
         #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-
+        self.get_logger().info("Finished grasp planning logic.")
+        response.cylinder_ids = [CylinderCombination(cylinder_ids=[1, 2])]
+        response.grasp_pose = [Pose(position=Point(x=0.5, y=0.5, z=0.5), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))]
+        response.place_pose = [Pose(position=Point(x=0.5, y=0.5, z=0.5), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))]
         return response
 
     def convert_image_mask_to_pixel_indices(self, mask, depth_width, depth_height):
@@ -260,37 +270,9 @@ class GraspPlanningNode(Node):
         tranform_request.camera_type = "roboception"
 
         # Call the 'PixelToPoint' service asynchronously
-        transform_response: PixelToPoint.Response = self.PtP_client.call_async(tranform_request)
-       
-        return transform_response
+        future = self.PtP_client.call_async(tranform_request)
 
-    def pixel_to_point(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
-        """
-        Convert a list of pixels to a list of Point objects.
-
-        Args:
-            pixels (list): List of pixels to convert.
-            height (int): Height of the image.
-            width (int): Width of the image.
-            depth_image (Image): Depth image.
-
-        Returns:
-            response (PixelToPoint.Response): Response from the 'PixelToPoint' service.
-        """
-        # Call the 'pixel_to_point_async' method to make an asynchronous call to the 'PixelToPoint' service
-        future = self.pixel_to_point_async(pixels, height, width, depth_image)
-        self.get_logger().info('before spin_until_future_complete for PixelToPoint')
-
-        # Wait until the future is complete and get the response
-        rclpy.spin_until_future_complete(self, future)
-        ptp_response = future.result()
-        if ptp_response is not None:
-            self.get_logger().debug('Received response for PtP: %s' % str(future.result().points))
-        else:
-            self.get_logger().error('Exception while calling PtP service: %r' % future.exception())
-        self.get_logger().info(str(ptp_response.points))
-        return ptp_response.points
-    
+        return future
 
 # Choose the mask with the highest probability
 
@@ -373,20 +355,11 @@ class GraspPlanningNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-
     grasp_planning_node = GraspPlanningNode()
-
-    try:
-        rclpy.spin(grasp_planning_node)
-        grasp_planning_node.get_logger().info("Started Node")
-
-    except KeyboardInterrupt:
-        grasp_planning_node.get_logger().info("Stopped Node")
-
-    #####################
-
-    grasp_planning_node.destroy_node()
+    rclpy.spin(grasp_planning_node) 
+    grasp_planning_node.get_logger().info("Started Node")
     rclpy.shutdown()
+    
 
 
 if __name__ == '__main__':
