@@ -17,6 +17,7 @@ find_package(aip_packing_planning_interfaces REQUIRED)
 find_package(aip_grasp_planning_interfaces REQUIRED)
 find_package(point_transformation_interfaces REQUIRED)
 find_package(point_transformation REQUIRED)
+find_package(std_msgs REQUIRED)
 
 
 #find directory to includ .h files
@@ -34,6 +35,7 @@ set(DEPENDENCIES
   aip_grasp_planning_interfaces
   point_transformation_interfaces
   point_transformation
+  std_msgs
 )
 
 file (GLOB SOURCES_NODES src/aip_grasp_planning/*.cpp)
@@ -59,6 +61,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/grasp_planning_node.py
+  scripts/grasp_planning_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
