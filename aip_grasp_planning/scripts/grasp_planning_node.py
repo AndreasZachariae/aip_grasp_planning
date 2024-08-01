@@ -25,7 +25,7 @@ from tf2_ros import Buffer, TransformListener
 
 from tf2_geometry_msgs import do_transform_pose
 
-from aip_grasp_planning.cylinder_selection import CylinderSelection
+from aip_grasp_planning.cylinder_selection import choose_cylinder
 import cv2
 from cv_bridge import CvBridge
 
@@ -70,7 +70,7 @@ class GraspPlanningNode(Node):
 
 
     async def grasp_planning_logic(self, request, response): 
-        
+    
         self.get_logger().info('Received request for Grasp Planning')
     
         # Get all the masks from the odtf part of the request
@@ -105,8 +105,12 @@ class GraspPlanningNode(Node):
         for package in packages:
             packages_width.append(package.dimensions.y)
 
+        # for package in packages:
+        #     self.get_logger().info("PACKAGE " + str(package.class_name) + " with dimensions: " + str(package.dimensions) + " and weight: " + str(package.weight))
+
         # Choose Cylinder per package based on the package dimensions and weight
-        index_msgs, cylinder_ids_per_package, tcps_cylinder_offsets = CylinderSelection().choose_cylinder(packages_weights, packages_length, packages_width) #, packages_height)
+
+        index_msgs, cylinder_ids_per_package, tcps_cylinder_offsets = choose_cylinder(packages_weights, packages_length, packages_width) #, packages_height)
         self.get_logger().info("Cylinder IDs per package: " + str(cylinder_ids_per_package))
         self.get_logger().info("TCP offsets per package: " + str(tcps_cylinder_offsets))
         response.cylinder_ids = cylinder_ids_per_package
@@ -208,7 +212,7 @@ class GraspPlanningNode(Node):
 
         ### PLACE Pose Definition ###
         # Container corner reference 
-        container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
+        container_corner = Point(x=0.75, y=0.3, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
         place_poses = []
 
         # Calculate the place pose for each package
@@ -221,7 +225,7 @@ class GraspPlanningNode(Node):
             if package.rotation_index == 1: #long tcp side across to long package side 
                 place_pose = Pose(
                             position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
                                         #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                                            z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             
@@ -230,7 +234,7 @@ class GraspPlanningNode(Node):
             elif package.rotation_index == 3: #long tcp side parallel to long package side
                 place_pose = Pose(
                             position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
                                         #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
                                            z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
