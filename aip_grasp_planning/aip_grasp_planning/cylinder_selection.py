@@ -51,7 +51,7 @@ class CylinderSelection:
                 # cylinder.append("3")
                 cylinder_combination.cylinder_ids = [3]
                 cylinder_ids.append(cylinder_combination)
-                tcp_cylinder =  Affine(translation = [-0.075, 0.106, 0.281], rotation=[0.0, 0.0, 0.0])
+                tcp_cylinder =  Affine(translation = [0.0485, -0.081, 0.281], rotation=[0.0, 0.0, 0.0])
                 tcps_cylinder.append(tcp_cylinder)
             
             elif packages_width[i] > 0.051 and packages_width[i] <= 0.092 and packages_length[i] > 0.051 and packages_length[i] <= 0.129 and packages_weights[i] < 1.14:
@@ -60,7 +60,7 @@ class CylinderSelection:
                 # cylinder.append("1")
                 cylinder_combination.cylinder_ids = [1]
                 cylinder_ids.append(cylinder_combination)            
-                tcp_cylinder =  Affine(translation = [0.0485, 0.0815, 0.299], rotation=[0.0, 0.0, 0.0])
+                tcp_cylinder =  Affine(translation = [-0.0746, -0.107, 0.299], rotation=[0.0, 0.0, 0.0])
                 tcps_cylinder.append(tcp_cylinder)
 
             elif packages_width[i] > 0.051 and packages_width[i] < 0.151 and packages_length[i] > 0.129 and packages_length[i] <= 0.232 and packages_weights[i] < 2.27:
@@ -69,7 +69,7 @@ class CylinderSelection:
                 # cylinder.append("2")
                 cylinder_combination.cylinder_ids = [2]
                 cylinder_ids.append(cylinder_combination)  
-                tcp_cylinder =  Affine(translation = [0.0505, -0.0495, 0.299], rotation=[0.0, 0.0, 0.0])
+                tcp_cylinder =  Affine(translation = [-0.0579, 0.0525, 0.299], rotation=[0.0, 0.0, 0.0])
                 tcps_cylinder.append(tcp_cylinder)
             
             elif packages_width[i] > 0.035 and packages_width[i] <= 0.151 and packages_length[i] > 0.165 and packages_length[i] <= 0.232 and packages_weights[i] < 3.10:
@@ -78,7 +78,7 @@ class CylinderSelection:
                 # cylinder.append("4")
                 cylinder_combination.cylinder_ids = [4]
                 cylinder_ids.append(cylinder_combination)  
-                tcp_cylinder =  Affine(translation = [-0.0585, -0.055, 0.299], rotation=[0.0, 0.0, 0.0])
+                tcp_cylinder =  Affine(translation = [0.0502, 0.0593, 0.299], rotation=[0.0, 0.0, 0.0])
                 tcps_cylinder.append(tcp_cylinder)
 
             elif packages_width[i] > 0.053 and packages_width[i] <= 0.182 and packages_length[i] > 0.232 and packages_weights[i] < 3.41:
@@ -87,7 +87,7 @@ class CylinderSelection:
                 # cylinder.append("1,2")
                 cylinder_combination.cylinder_ids = [1, 2]
                 cylinder_ids.append(cylinder_combination)  
-                tcp_cylinder =  Affine(translation = [0.049, -0.009, 0.299], rotation=[0.0, 0.0, 0.0])
+                tcp_cylinder =  Affine(translation = [-0.0663, 0.0149, 0.299], rotation=[0.0, 0.0, 0.0])
                 tcps_cylinder.append(tcp_cylinder)
 
             elif packages_width[i] > 0.151:
@@ -97,7 +97,7 @@ class CylinderSelection:
                     # cylinder.append("2")
                     cylinder_combination.cylinder_ids = [2]
                     cylinder_ids.append(cylinder_combination)  
-                    tcp_cylinder =  Affine(translation = [0.0505, -0.0495, 0.299], rotation=[0.0, 0.0, 0.0])
+                    tcp_cylinder =  Affine(translation = [-0.0579, 0.0525, 0.299], rotation=[0.0, 0.0, 0.0])
                     tcps_cylinder.append(tcp_cylinder)
                 elif packages_length[i] > 0.165 and packages_length[i] <= 0.243 and packages_weights[i] < 5.37:
                     # index_msg = 6
@@ -105,16 +105,16 @@ class CylinderSelection:
                     # cylinder.append("2,4")
                     cylinder_combination.cylinder_ids = [2, 4]
                     cylinder_ids.append(cylinder_combination)  
-                    tcp_cylinder =  Affine(translation = [-0.001, -0.054, 0.299], rotation=[0.0, 0.0, 0.0]) 
+                    tcp_cylinder =  Affine(translation = [-0.0399, 0.054, 0.299], rotation=[0.0, 0.0, 0.0]) 
                     tcps_cylinder.append(tcp_cylinder)
-                elif packages_length[i] > 0.243 and packages_weights[i] < 6.51:
-                    # index_msg = 7
-                    # index_msgs.append(index_msg)
-                    # cylinder.append("1,2,4")
-                    cylinder_combination.cylinder_ids = [1, 2, 4]
-                    cylinder_ids.append(cylinder_combination)  
-                    tcp_cylinder =  Affine(translation = [-0.001, -0.015, 0.299], rotation=[0.0, 0.0, 0.0])
-                    tcps_cylinder.append(tcp_cylinder)
+                # elif packages_length[i] > 0.243 and packages_weights[i] < 6.51:
+                #     # index_msg = 7
+                #     # index_msgs.append(index_msg)
+                #     # cylinder.append("1,2,4")
+                #     cylinder_combination.cylinder_ids = [1, 2, 4]
+                #     cylinder_ids.append(cylinder_combination)  
+                #     tcp_cylinder =  Affine(translation = [-0.001, -0.015, 0.299], rotation=[0.0, 0.0, 0.0])
+                #     tcps_cylinder.append(tcp_cylinder)
                 else: print("Error: dimensions of package " + str_i + " not allowable")
             else: print("Error: dimensions of package " + str_i + " not allowable")
 
