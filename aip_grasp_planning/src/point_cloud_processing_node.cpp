@@ -42,9 +42,9 @@
         pose.position.y = averagePosition.y;
         pose.position.z = averagePosition.z;
         pose.orientation.x = 0.0;
-        pose.orientation.y = 0.0;
+        pose.orientation.y = 1.0;
         pose.orientation.z = 0.0;
-        pose.orientation.w = 1.0;
+        pose.orientation.w = 0;
         // pose.position.x = planeCoefficients->values[0];
         // pose.position.y = planeCoefficients->values[1];
         // pose.position.z = planeCoefficients->values[2];
