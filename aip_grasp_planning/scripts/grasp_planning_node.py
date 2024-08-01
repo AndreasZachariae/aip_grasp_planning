@@ -185,82 +185,82 @@ class GraspPlanningNode(Node):
             # # Convert the grasp pose to a homogeneous matrix
             # grasp_pose_matrix = default_pose * Affine()
 
-            self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
+            # self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
 
-            # self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
-            # self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
-            # self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
+            # # self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
+            # # self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
+            # # self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
 
-            grasp_pose.position.x = grasp_pose.position.x + tcps_cylinder_offsets[idx].translation[0]
-            grasp_pose.position.y = grasp_pose.position.y + tcps_cylinder_offsets[idx].translation[1]
-            grasp_pose.position.z = grasp_pose.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
+            # grasp_pose.position.x = grasp_pose.position.x + tcps_cylinder_offsets[idx].translation[0]
+            # grasp_pose.position.y = grasp_pose.position.y + tcps_cylinder_offsets[idx].translation[1]
+            # grasp_pose.position.z = grasp_pose.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
 
-            self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
-            grasp_poses.append(grasp_pose)
+            # self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
+        #     grasp_poses.append(grasp_pose)
 
-        offset_pose_array = PoseArray()
-        offset_pose_array.header.frame_id = "world"
-        offset_pose_array.header.stamp = self.get_clock().now().to_msg()
-        offset_pose_array.poses = grasp_poses
-        self.grasp_poses_publisher.publish(offset_pose_array)        
+        # offset_pose_array = PoseArray()
+        # offset_pose_array.header.frame_id = "world"
+        # offset_pose_array.header.stamp = self.get_clock().now().to_msg()
+        # offset_pose_array.poses = grasp_poses
+        # self.grasp_poses_publisher.publish(offset_pose_array)        
             
-        response.grasp_pose = grasp_poses
+        # response.grasp_pose = grasp_poses
 
-        ### PLACE Pose Definition ###
-        # Container corner reference 
-        container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
-        place_poses = []
+        # ### PLACE Pose Definition ###
+        # # Container corner reference 
+        # container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
+        # place_poses = []
 
-        # Calculate the place pose for each package
-        for idx, package in enumerate(packages):
-            self.get_logger().info("PLACE Pose for package with CLASS NAME: " + str(package.class_name) + " with INDEX: " + str(idx))
+        # # Calculate the place pose for each package
+        # for idx, package in enumerate(packages):
+        #     self.get_logger().info("PLACE Pose for package with CLASS NAME: " + str(package.class_name) + " with INDEX: " + str(idx))
 
-            #package.rotation_index = 3  #For TESTING
+        #     #package.rotation_index = 3  #For TESTING
 
-            # Check target orientation per package from the packing plan and calculate the place pose
-            if package.rotation_index == 1: #long tcp side across to long package side 
-                place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
-                                        #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
-                                           z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+        #     # Check target orientation per package from the packing plan and calculate the place pose
+        #     if package.rotation_index == 1: #long tcp side across to long package side 
+        #         place_pose = Pose(
+        #                     position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
+        #                                    y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+        #                                 #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+        #                                    z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             
-                            orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
+        #                     orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
                 
-            elif package.rotation_index == 3: #long tcp side parallel to long package side
-                place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
-                                        #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
-                                           z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
-                            orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
-                        )
+        #     elif package.rotation_index == 3: #long tcp side parallel to long package side
+        #         place_pose = Pose(
+        #                     position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
+        #                                    y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+        #                                 #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
+        #                                    z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+        #                     orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
+        #                 )
 
 
-            self.get_logger().info("Container Corner in WORLD: " + str(container_corner))
-            self.get_logger().info("Package Place Coordinate    X   : " + str(package.place_coordinates.x))
-            self.get_logger().info("TCPS Cylinder Offset        X   : " + str(tcps_cylinder_offsets[idx].translation[0]))
+        #     self.get_logger().info("Container Corner in WORLD: " + str(container_corner))
+        #     self.get_logger().info("Package Place Coordinate    X   : " + str(package.place_coordinates.x))
+        #     self.get_logger().info("TCPS Cylinder Offset        X   : " + str(tcps_cylinder_offsets[idx].translation[0]))
             
-            self.get_logger().info("Package Place Coordinate    Y   : " + str(package.place_coordinates.y))
-            self.get_logger().info("TCPS Cylinder Offset        Y   : " + str(tcps_cylinder_offsets[idx].translation[1]))
+        #     self.get_logger().info("Package Place Coordinate    Y   : " + str(package.place_coordinates.y))
+        #     self.get_logger().info("TCPS Cylinder Offset        Y   : " + str(tcps_cylinder_offsets[idx].translation[1]))
 
-            self.get_logger().info("Package Dimensions          Z   : " + str(package.dimensions.z))
-            self.get_logger().info("TCPS Cylinder Offset        Z  incl. EjecOff : " + str(tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset))
+        #     self.get_logger().info("Package Dimensions          Z   : " + str(package.dimensions.z))
+        #     self.get_logger().info("TCPS Cylinder Offset        Z  incl. EjecOff : " + str(tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset))
 
-            self.get_logger().info("PLACE Pose in WORLD WITH TCP Offset: " + str(place_pose))
+        #     self.get_logger().info("PLACE Pose in WORLD WITH TCP Offset: " + str(place_pose))
 
-            place_poses.append(place_pose)
+        #     place_poses.append(place_pose)
 
-        response.place_pose = place_poses
+        # response.place_pose = place_poses
 
-        self.get_logger().info("Cylinder Ids " + str(response.cylinder_ids))
+        # self.get_logger().info("Cylinder Ids " + str(response.cylinder_ids))
 
-        # # FIXED Place Pose response for now
-        # response.place_pose = [
-        #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-        #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        self.get_logger().info("Finished grasp planning logic.")
+        # # # FIXED Place Pose response for now
+        # # response.place_pose = [
+        # #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
+        # #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+        # # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+        # self.get_logger().info("Finished grasp planning logic.")
         return response
 
     def convert_image_mask_to_pixel_indices(self, mask, depth_width, depth_height):
