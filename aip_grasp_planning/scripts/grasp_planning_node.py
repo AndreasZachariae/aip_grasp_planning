@@ -43,22 +43,6 @@ class GraspPlanningNode(Node):
     It subscribes to the '/stereo/depth' topic, calls the 'PixelToPoint' service provided by the 'point_transformation_node',
     and handles the response asynchronously.
     """
-   # depth_image = request.depth_image
-
-        # for mask in masks:
-        # # Convert the mask image to a list of pixels
-        #     pixels = self.convert_image_mask_to_pixel_indices(mask)
-
-        #     # Call the 'pixel_to_point' method to convert the pixels to points
-        #     points = self.pixel_to_point(pixels, depth_image.height, depth_image.width, depth_image)
-
-        #     # Call the 'grasp_pose_client' service to get the grasp poses
-        #     grasp_pose_request = GraspObjectSurfaceNormal.Request()
-        #     grasp_pose_request.masked_points = points
-        #     grasp_pose_response = self.grasp_pose_client.call(grasp_pose_request)
-
-        #     # # Process the grasp pose response and extract the grasp poses
-        #     # grasp_pose = grasp_pose_response.grasp_pose
     def __init__(self):
         super().__init__('grasp_planning_node')
         self.service_group = MutuallyExclusiveCallbackGroup() #callback group controls the execution of the callback function 
@@ -104,7 +88,6 @@ class GraspPlanningNode(Node):
         # Get the package sequence from the request        
         packages = request.package_sequence.packages
 
-
         ### Cylinder Selection + TCP Offset ###
         self.get_logger().info("Extracting package information for cylinder selection and TCP offsets.")
         
@@ -122,23 +105,26 @@ class GraspPlanningNode(Node):
         for package in packages:
             packages_width.append(package.dimensions.y)
 
-
         # Choose Cylinder per package based on the package dimensions and weight
         index_msgs, cylinder_ids_per_package, tcps_cylinder_offsets = CylinderSelection().choose_cylinder(packages_weights, packages_length, packages_width) #, packages_height)
         self.get_logger().info("Cylinder IDs per package: " + str(cylinder_ids_per_package))
         self.get_logger().info("TCP offsets per package: " + str(tcps_cylinder_offsets))
-
         response.cylinder_ids = cylinder_ids_per_package
-
 
         pack_sequence_class_names = []
         for package in packages:
             pack_sequence_class_names.append(package.class_name)
 
         grasp_poses = []
-        cylinder_ejection_offset = 0.15
+        cylinder_ejection_offset = 0.14
 
         for idx, pack_sequence_class_name in enumerate(pack_sequence_class_names):
+
+            self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
+
+
+            self.get_logger().info(f"Grasp planning for package with CLASS NAME: {pack_sequence_class_name} and INDEX: {idx}")
+
             # if pack_sequence_class_name not in class_names:
             #     self.get_logger().info(f"{pack_sequence_class_name} not found in the detected objects.")
             #     self.get_logger().info("Abort grasp planning for this pack sequence.")
@@ -152,24 +138,17 @@ class GraspPlanningNode(Node):
 
             # Call the 'pixel_to_point' method to convert the pixels to points
             future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image)
-
-            # Wait for the 'PixelToPoint' service to return the response
             await future
             point_response = future.result()
-            
-
-            self.get_logger().info("Converted masks to pixel indices and to points.")
 
             # Call the 'grasp_pose_client' servicefilterCloud to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
-            
             grasp_pose_request.masked_points = point_response.points       #request type = geometry_msgs/Point[]
             future = self.grasp_pose_client.call_async(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
-            
             await future
             grasp_pose_response = future.result()
-            self.get_logger().info("Received grasp pose from point cloud processing node.")
-            self.get_logger().info("Grasp Pose: " + str(grasp_pose_response.surface_normal_to_grasp))
+
+            self.get_logger().info("Grasp Pose from GraspObjectSURFACENormal: " + str(grasp_pose_response.surface_normal_to_grasp))
             t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
             # tt = self.tf_buffer.lookup_transform("camera", "base_link", rclpy.time.Time())
             self.get_logger().info(f"Transform: {t.transform}")
@@ -179,17 +158,21 @@ class GraspPlanningNode(Node):
             grasp_pose.position.x = grasp_pose_response.surface_normal_to_grasp.position.x
             grasp_pose.position.y = grasp_pose_response.surface_normal_to_grasp.position.y
             grasp_pose.position.z = grasp_pose_response.surface_normal_to_grasp.position.z
-            grasp_pose.orientation.x = orientation.x        
-            grasp_pose.orientation.y = orientation.y
-            grasp_pose.orientation.z = orientation.z
-            grasp_pose.orientation.w = orientation.w
+
             self.get_logger().info(f"Grasp pose before transform: {grasp_pose}")
 
             grasp_pose = do_transform_pose(grasp_pose, t)
             self.get_logger().info(f"Grasp pose after transform base: {grasp_pose}")
             grasp_pose = do_transform_pose(grasp_pose, t_w)
-            #turn by 90 to match y
-            angle = np.arccos(grasp_pose.orientation.w) + np.pi/4
+
+            grasp_pose.position.z = grasp_pose.position.z # - 0.005
+            grasp_pose.orientation.x = orientation.x        
+            grasp_pose.orientation.y = orientation.y
+            grasp_pose.orientation.z = -orientation.z
+            grasp_pose.orientation.w = orientation.w
+
+            # turn by 90 to match y
+            angle = np.arccos(grasp_pose.orientation.w) - np.pi/4
             grasp_pose.orientation.x = (grasp_pose.orientation.x / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
             grasp_pose.orientation.y = (grasp_pose.orientation.y / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
             grasp_pose.orientation.z = (grasp_pose.orientation.z / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
@@ -202,20 +185,17 @@ class GraspPlanningNode(Node):
             # # Convert the grasp pose to a homogeneous matrix
             # grasp_pose_matrix = default_pose * Affine()
 
-            self.get_logger().info("TCP Offset with Index 0: " + str(tcps_cylinder_offsets[idx]))
+            self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
 
-            self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
-            self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
-            self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
+            # self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
+            # self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
+            # self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
 
             grasp_pose.position.x = grasp_pose.position.x + tcps_cylinder_offsets[idx].translation[0]
             grasp_pose.position.y = grasp_pose.position.y + tcps_cylinder_offsets[idx].translation[1]
             grasp_pose.position.z = grasp_pose.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
-            grasp_pose.orientation = grasp_pose.orientation
 
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
-
-
             grasp_poses.append(grasp_pose)
 
         offset_pose_array = PoseArray()
@@ -226,8 +206,6 @@ class GraspPlanningNode(Node):
             
         response.grasp_pose = grasp_poses
 
-
-
         ### PLACE Pose Definition ###
         # Container corner reference 
         container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
@@ -235,29 +213,47 @@ class GraspPlanningNode(Node):
 
         # Calculate the place pose for each package
         for idx, package in enumerate(packages):
-            self.get_logger().info("Package: " + str(package))
+            self.get_logger().info("PLACE Pose for package with CLASS NAME: " + str(package.class_name) + " with INDEX: " + str(idx))
 
-            # package.rotation_index = 3  #For TESTING
+            #package.rotation_index = 3  #For TESTING
 
             # Check target orientation per package from the packing plan and calculate the place pose
             if package.rotation_index == 1: #long tcp side across to long package side 
                 place_pose = Pose(
                             position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
                                            y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
-                                           z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), 
+                                        #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+                                           z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+                            
                             orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))
                 
             elif package.rotation_index == 3: #long tcp side parallel to long package side
                 place_pose = Pose(
                             position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
                                            y=container_corner.y - package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
-                                           z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),
-                            orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(angle / 2), w=np.cos(angle / 2))
+                                        #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
+                                           z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
+                            orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
                         )
+
+
+            self.get_logger().info("Container Corner in WORLD: " + str(container_corner))
+            self.get_logger().info("Package Place Coordinate    X   : " + str(package.place_coordinates.x))
+            self.get_logger().info("TCPS Cylinder Offset        X   : " + str(tcps_cylinder_offsets[idx].translation[0]))
+            
+            self.get_logger().info("Package Place Coordinate    Y   : " + str(package.place_coordinates.y))
+            self.get_logger().info("TCPS Cylinder Offset        Y   : " + str(tcps_cylinder_offsets[idx].translation[1]))
+
+            self.get_logger().info("Package Dimensions          Z   : " + str(package.dimensions.z))
+            self.get_logger().info("TCPS Cylinder Offset        Z  incl. EjecOff : " + str(tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset))
+
+            self.get_logger().info("PLACE Pose in WORLD WITH TCP Offset: " + str(place_pose))
 
             place_poses.append(place_pose)
 
         response.place_pose = place_poses
+
+        self.get_logger().info("Cylinder Ids " + str(response.cylinder_ids))
 
         # # FIXED Place Pose response for now
         # response.place_pose = [
@@ -265,9 +261,6 @@ class GraspPlanningNode(Node):
         #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
         self.get_logger().info("Finished grasp planning logic.")
-        response.cylinder_ids = [CylinderCombination(cylinder_ids=[1, 2])]
-        response.grasp_pose = [Pose(position=Point(x=0.5, y=0.5, z=0.5), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))]
-        response.place_pose = [Pose(position=Point(x=0.5, y=0.5, z=0.5), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0))]
         return response
 
     def convert_image_mask_to_pixel_indices(self, mask, depth_width, depth_height):
@@ -317,7 +310,6 @@ class GraspPlanningNode(Node):
 
         # Call the 'PixelToPoint' service asynchronously
         future = self.PtP_client.call_async(tranform_request)
-
         return future
 
 def main(args=None):

@@ -147,3 +147,4 @@ install/
 log/
 .vscode/
 object_detector_tensorflow_interfaces/
+*.pcd
