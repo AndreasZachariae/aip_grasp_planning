@@ -36,7 +36,10 @@
         filterCloud(cloud, 0.01);
         pcl::PointCloud<pcl::PointXYZ>::Ptr surfacePlane(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::ModelCoefficients::Ptr planeCoefficients = extractSurfacePlane(cloud, surfacePlane);
-        this->publish_point_cloud(surfacePlane);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr projectedCloud = projectCloud(cloud, planeCoefficients);
+        filterCloud(projectedCloud, 0.01);
+
+        this->publish_point_cloud(projectedCloud);
         // Save the point cloud as a PCD file
         //
         // pcl::io::savePCDFileASCII("./src/aip_grasp_planning/cloud.pcd", *cloud);
@@ -44,13 +47,13 @@
 
         // RCLCPP_INFO(this->get_logger(), "Point cloud saved as PCD file");
         pcl::PointXYZ averagePosition(0.0, 0.0, 0.0);
-        for (const auto& point : surfacePlane->points)
+        for (const auto& point : projectedCloud->points)
         {
             averagePosition.x += point.x;
             averagePosition.y += point.y;
             averagePosition.z += point.z;
         }
-        int numPoints = surfacePlane->size();
+        int numPoints = projectedCloud->size();
         averagePosition.x /= numPoints;
         averagePosition.y /= numPoints;
         averagePosition.z /= numPoints;
@@ -72,6 +75,16 @@
 
     // rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr result_publisher_;
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::projectCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients)
+{
+    pcl::ProjectInliers<pcl::PointXYZ> proj;
+    proj.setModelType(pcl::SACMODEL_PLANE);
+    proj.setInputCloud(cloud);
+    proj.setModelCoefficients(coefficients);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projectedCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    proj.filter(*projectedCloud);
+    return projectedCloud;
+}
 
 void PointCloudProcessingNode::filterCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float leaf_size)
 {

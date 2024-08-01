@@ -31,6 +31,7 @@ private:
     pcl::ModelCoefficients::Ptr extractSurfacePlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr& surfacePlane);
     pcl::PointCloud<pcl::PointXYZ>::Ptr extractInlierPoints(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, const pcl::PointIndices::Ptr inliers);
     void publish_point_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projectCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients);
 
     rclcpp::Service<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>::SharedPtr service;
 
