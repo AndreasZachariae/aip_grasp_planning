@@ -12,15 +12,13 @@
 
     void PointCloudProcessingNode::publish_point_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
     {
-        // Log the number of points contained in cloud
-        RCLCPP_INFO(this->get_logger(), "Number of points in cloud: %d", cloud->size());
         // Convert the PCL point cloud to a ROS 2 PointCloud2 message
         sensor_msgs::msg::PointCloud2 point_cloud_msg;
         pcl::toROSMsg(*cloud, point_cloud_msg);
 
         // Fill the header
         point_cloud_msg.header.stamp = this->now();
-        point_cloud_msg.header.frame_id = "map";
+        point_cloud_msg.header.frame_id = "camera";
 
         // Publish the point cloud
         publisher_->publish(point_cloud_msg);
@@ -37,8 +35,8 @@
         cloud = this->transformPointsToPointCloud(request->masked_points);
         filterCloud(cloud, 0.01);
         pcl::PointCloud<pcl::PointXYZ>::Ptr surfacePlane(new pcl::PointCloud<pcl::PointXYZ>);
-        this->publish_point_cloud(surfacePlane);
         pcl::ModelCoefficients::Ptr planeCoefficients = extractSurfacePlane(cloud, surfacePlane);
+        this->publish_point_cloud(surfacePlane);
         // Save the point cloud as a PCD file
         //
         // pcl::io::savePCDFileASCII("./src/aip_grasp_planning/cloud.pcd", *cloud);
