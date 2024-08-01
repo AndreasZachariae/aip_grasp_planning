@@ -139,6 +139,7 @@ class GraspPlanningNode(Node):
                 if pack_sequence_class == class_names[mask_index] and mask_index not in used_mask_indices:
                     used_mask_indices.append(mask_index)
                     mask = masks[mask_index]
+                    break
 
             # Convert the mask image to a list of pixels
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
