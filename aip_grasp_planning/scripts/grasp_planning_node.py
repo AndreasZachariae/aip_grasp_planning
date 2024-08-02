@@ -121,21 +121,25 @@ class GraspPlanningNode(Node):
 
         grasp_poses = []
         cylinder_ejection_offset = 0.14
+        used_mask_indices = []
 
-        for idx, pack_sequence_class_name in enumerate(pack_sequence_class_names):
+        for idx in range(len(pack_sequence_class_names)):
 
             self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
 
 
-            self.get_logger().info(f"Grasp planning for package with CLASS NAME: {pack_sequence_class_name} and INDEX: {idx}")
+            self.get_logger().info(f"Grasp planning for package with CLASS NAME: {pack_sequence_class_names[idx]} and INDEX: {idx}")
 
             # if pack_sequence_class_name not in class_names:
             #     self.get_logger().info(f"{pack_sequence_class_name} not found in the detected objects.")
             #     self.get_logger().info("Abort grasp planning for this pack sequence.")
             #     return
 
-            mask_index = class_names.index(pack_sequence_class_name)
-            mask = masks[mask_index]
+            for mask_index, pack_sequence_class in enumerate(pack_sequence_class_names):
+                if pack_sequence_class == class_names[mask_index] and mask_index not in used_mask_indices:
+                    used_mask_indices.append(mask_index)
+                    mask = masks[mask_index]
+                    break
 
             # Convert the mask image to a list of pixels
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)

@@ -47,7 +47,7 @@ def main(args=None):
     grasp_planning_node = GraspPlanningNode()
 
     # Example usage of the service call
-    objects_to_pick = ["object1"]
+    objects_to_pick = ["example_class"]
     package_sequence = PackageSequence()  # Populate with actual data
     
     depth_image = Image()  # Populate with actual data
