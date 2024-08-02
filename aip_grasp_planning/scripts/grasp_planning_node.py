@@ -153,27 +153,28 @@ class GraspPlanningNode(Node):
             grasp_pose_response = future.result()
 
             self.get_logger().info("Grasp Pose from GraspObjectSURFACENormal: " + str(grasp_pose_response.surface_normal_to_grasp))
-            t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
-            # tt = self.tf_buffer.lookup_transform("camera", "base_link", rclpy.time.Time())
-            self.get_logger().info(f"Transform: {t.transform}")
-            t_w = self.tf_buffer.lookup_transform("world", "base_link", rclpy.time.Time())
-            orientation = orientations[mask_index]
             grasp_pose = Pose()
             grasp_pose.position.x = grasp_pose_response.surface_normal_to_grasp.position.x
             grasp_pose.position.y = grasp_pose_response.surface_normal_to_grasp.position.y
             grasp_pose.position.z = grasp_pose_response.surface_normal_to_grasp.position.z
+            grasp_pose.orientation.x = grasp_pose_response.surface_normal_to_grasp.orientation.x
+            grasp_pose.orientation.y = grasp_pose_response.surface_normal_to_grasp.orientation.y
+            grasp_pose.orientation.z = grasp_pose_response.surface_normal_to_grasp.orientation.z
+            grasp_pose.orientation.w = -grasp_pose_response.surface_normal_to_grasp.orientation.w
 
-            self.get_logger().info(f"Grasp pose before transform: {grasp_pose}")
-
+            t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t)
             self.get_logger().info(f"Grasp pose after transform base: {grasp_pose}")
+            t_w = self.tf_buffer.lookup_transform("world", "base_link", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t_w)
 
-            grasp_pose.position.z = grasp_pose.position.z # - 0.005
-            grasp_pose.orientation.x = orientation.x        
-            grasp_pose.orientation.y = orientation.y
-            grasp_pose.orientation.z = -orientation.z
-            grasp_pose.orientation.w = orientation.w
+            orientation = orientations[mask_index]
+
+            
+
+            # Calculate the new orientation of the grasp pose
+            # Convert the orientation to a rotation matrix
+            rotation_matrix = Rotation.from_quat([grasp_pose.orientation.x, grasp_pose.orientation.y, grasp_pose.orientation.z, grasp_pose.orientation.w]).as_matrix()
 
             # turn by 90 to match y
             angle = np.arccos(grasp_pose.orientation.w) - np.pi/4
@@ -191,13 +192,22 @@ class GraspPlanningNode(Node):
 
             self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
 
-            # self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
-            # self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
-            # self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
+            # x_offset = tcps_cylinder_offsets[idx].translation[0]
+            # y_offset = tcps_cylinder_offsets[idx].translation[1]
+            z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
+            
+            # Multiply the offsets with the rotation matrix
+            offsets = np.array([-0, -0, -z_offset])
+            offsets_rotated = np.dot(rotation_matrix, offsets)
 
-            grasp_pose.position.x = grasp_pose.position.x + tcps_cylinder_offsets[idx].translation[0]
-            grasp_pose.position.y = grasp_pose.position.y + tcps_cylinder_offsets[idx].translation[1]
-            grasp_pose.position.z = grasp_pose.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
+            # Update the grasp pose with the rotated offsets
+            grasp_pose.position.x += offsets_rotated[0]
+            grasp_pose.position.y += offsets_rotated[1]
+            grasp_pose.position.z += offsets_rotated[2]
+            
+            rotation_matrix = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
+
+
 
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
             grasp_poses.append(grasp_pose)
