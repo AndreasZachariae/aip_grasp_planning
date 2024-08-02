@@ -54,6 +54,8 @@ class GraspPlanningNode(Node):
         # Create a server to handle the 'grasp_planning service requests
         self.grasp_planning_server = self.create_service(GraspPlanning, 'grasp_planning_node/grasp_planning', self.grasp_planning_logic)
         self.grasp_poses_publisher = self.create_publisher(PoseArray, '/grasp_poses', 10)
+        self.grasp_poses_with_offset_publisher = self.create_publisher(PoseArray, '/grasp_poses_with_offset', 10)        
+
         # Create a client to call the 'PixelToPoint' service provided by the 'point_transformation_node'
         self.PtP_client = self.create_client(PixelToPoint, 'point_transformation_node/pixel_to_point', callback_group=self.ptp_group)
 
@@ -159,7 +161,7 @@ class GraspPlanningNode(Node):
             self.get_logger().info("Grasp Pose from GraspObjectSURFACENormal: " + str(grasp_pose_response.surface_normal_to_grasp))
             t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
             # tt = self.tf_buffer.lookup_transform("camera", "base_link", rclpy.time.Time())
-            self.get_logger().info(f"Transform: {t.transform}")
+            self.get_logger().info(f"Transform camera to base_link: {t.transform}")
             t_w = self.tf_buffer.lookup_transform("world", "base_link", rclpy.time.Time())
             orientation = orientations[mask_index]
             grasp_pose = Pose()
@@ -173,7 +175,7 @@ class GraspPlanningNode(Node):
             self.get_logger().info(f"Grasp pose after transform base: {grasp_pose}")
             grasp_pose = do_transform_pose(grasp_pose, t_w)
 
-            grasp_pose.position.z = grasp_pose.position.z # - 0.005
+            grasp_pose.position.z = grasp_pose.position.z 
             grasp_pose.orientation.x = orientation.x        
             grasp_pose.orientation.y = orientation.y
             grasp_pose.orientation.z = -orientation.z
@@ -185,34 +187,55 @@ class GraspPlanningNode(Node):
             grasp_pose.orientation.y = (grasp_pose.orientation.y / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
             grasp_pose.orientation.z = (grasp_pose.orientation.z / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
             grasp_pose.orientation.w = np.cos(angle)
+            
             self.get_logger().info(f"Grasp pose after transform world WITHOUT TCP Offset: {grasp_pose}")
+            # self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
 
-            # TODO for calculating the grasp pose with true surface normal vector
-            # # Define a default homogeneous matrix
-            # default_pose = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-            # # Convert the grasp pose to a homogeneous matrix
-            # grasp_pose_matrix = default_pose * Affine()
+            grasp_poses.append(grasp_pose) #without TCP offset
 
-            self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
+        # Publish initial grasp pose without TCP offset 
+        grasp_poses_array = PoseArray()
+        grasp_poses_array.header.frame_id = "world"
+        grasp_poses_array.header.stamp = self.get_clock().now().to_msg()
+        grasp_poses_array.poses = grasp_poses
+        self.grasp_poses_publisher.publish(grasp_poses_array)        
+        
+        ### TCP Offset Calculation ###
+        # Calculate the grasp pose with TCP offset added in TCP frame via ROS2 TF Tree
+        t_tcp_world = self.tf_buffer.lookup_transform("tcp", "world", rclpy.time.Time())
+        self.get_logger().info(f"Transform world to TCP: {t.transform}")
 
+        t_world_tcp = self.tf_buffer.lookup_transform("world", "tcp", rclpy.time.Time())
+        self.get_logger().info(f"Transform tcp to WORLD: {t.transform}")
+
+        grasp_poses_with_offsets = []
+        for idx, grasp_pose in enumerate(grasp_poses):
+            grasp_pose_tcp_frame = do_transform_pose(grasp_pose, t_tcp_world)
+            grasp_pose_tcp_frame.position.x = grasp_pose_tcp_frame.position.x + tcps_cylinder_offsets[idx].translation[0]
+            grasp_pose_tcp_frame.position.y = grasp_pose_tcp_frame.position.y + tcps_cylinder_offsets[idx].translation[1]
+            grasp_pose_tcp_frame.position.z = grasp_pose_tcp_frame.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
+            
             # self.get_logger().info(f"TCP Offset with Index 0: {tcps_cylinder_offsets[idx].translation[0]}")
             # self.get_logger().info(f"TCP Offset with Index 1: {tcps_cylinder_offsets[idx].translation[1]}")
             # self.get_logger().info(f"TCP Offset with Index 2: {tcps_cylinder_offsets[idx].translation[2]}")
 
-            grasp_pose.position.x = grasp_pose.position.x + tcps_cylinder_offsets[idx].translation[0]
-            grasp_pose.position.y = grasp_pose.position.y + tcps_cylinder_offsets[idx].translation[1]
-            grasp_pose.position.z = grasp_pose.position.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
-
-            self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
-            grasp_poses.append(grasp_pose)
-
-        offset_pose_array = PoseArray()
-        offset_pose_array.header.frame_id = "world"
-        offset_pose_array.header.stamp = self.get_clock().now().to_msg()
-        offset_pose_array.poses = grasp_poses
-        self.grasp_poses_publisher.publish(offset_pose_array)        
+            grasp_pose_with_offset = do_transform_pose(grasp_pose_tcp_frame, t_world_tcp)
             
-        response.grasp_pose = grasp_poses
+            self.get_logger().info(f"Grasp pose WITH TCP offset: {grasp_pose_with_offset}")
+            grasp_poses_with_offsets.append(grasp_pose_with_offset)
+
+        # Publish Grasp Pose with TCP Offset
+        grasp_poses_with_offsets_array = PoseArray()
+        grasp_poses_with_offsets_array.header.frame_id = "world"
+        grasp_poses_with_offsets_array.header.stamp = self.get_clock().now().to_msg()
+        grasp_poses_with_offsets_array.poses = grasp_poses_with_offsets
+        # self.get_logger().info("YYYYYYYYYYYYYYY")
+        # self.get_logger().info(f"Published offset pose array: {grasp_poses_with_offsets_array.poses}")
+        # self.get_logger().info("YYYYYYYYYYYYYYY")
+
+        self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
+
+        response.grasp_pose = grasp_poses_with_offsets
 
         ### PLACE Pose Definition ###
         # Container corner reference 
