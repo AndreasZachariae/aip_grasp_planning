@@ -30,6 +30,7 @@ import cv2
 from cv_bridge import CvBridge
 
 from scipy.spatial.transform import Rotation
+import copy
 
 
 # import cv2
@@ -59,6 +60,9 @@ class GraspPlanningNode(Node):
 
         # Create a client to request the grasp pose normal vector
         self.grasp_pose_client = self.create_client(GraspObjectSurfaceNormal, 'grasp_object_surface_normal', callback_group=self.service_group)
+
+        self.grasp_poses_with_offset_publisher = self.create_publisher(PoseArray, '/grasp_poses_with_offset', 10)        
+
 
         # Wait for the 'PixelToPoint' service to become available
         while not self.PtP_client.wait_for_service(timeout_sec=1.0):
@@ -179,14 +183,25 @@ class GraspPlanningNode(Node):
             grasp_pose.orientation.z = q_combined.as_quat()[2]
             grasp_pose.orientation.w = q_combined.as_quat()[3]
 
-            self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
+            grasp_pose_array = PoseArray()
+            grasp_pose_array.header.frame_id = "world"
+            grasp_pose_array.header.stamp = self.get_clock().now().to_msg()
+            grasp_pose_array.poses = copy.deepcopy(grasp_poses)
+            self.grasp_poses_publisher.publish(grasp_pose_array)
 
-            # x_offset = tcps_cylinder_offsets[idx].translation[0]
-            # y_offset = tcps_cylinder_offsets[idx].translation[1]
+            grasp_pose_array = PoseArray()
+            grasp_pose_array.header.frame_id = "world"
+            grasp_pose_array.header.stamp = self.get_clock().now().to_msg()
+            grasp_pose_array.poses = copy.deepcopy([grasp_pose])
+            self.grasp_poses_publisher.publish(grasp_pose_array)
+
+
+            x_offset = -tcps_cylinder_offsets[idx].translation[0]
+            y_offset = -tcps_cylinder_offsets[idx].translation[1]
             z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
             
             # Multiply the offsets with the rotation matrix
-            offsets = np.array([0, 0, z_offset])
+            offsets = np.array([x_offset, y_offset, z_offset])
             offsets_rotated = np.dot(q1.as_matrix(), offsets)
 
             # Update the grasp pose with the rotated offsets
@@ -194,15 +209,15 @@ class GraspPlanningNode(Node):
             grasp_pose.position.y += offsets_rotated[1]
             grasp_pose.position.z += offsets_rotated[2]
 
+            grasp_poses_with_offsets_array = PoseArray()
+            grasp_poses_with_offsets_array.header.frame_id = "world"
+            grasp_poses_with_offsets_array.header.stamp = self.get_clock().now().to_msg()
+            grasp_poses_with_offsets_array.poses = copy.deepcopy([grasp_pose])
+            self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
+
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
             grasp_poses.append(grasp_pose)
 
-        offset_pose_array = PoseArray()
-        offset_pose_array.header.frame_id = "world"
-        offset_pose_array.header.stamp = self.get_clock().now().to_msg()
-        offset_pose_array.poses = grasp_poses
-        self.grasp_poses_publisher.publish(offset_pose_array)        
-            
         response.grasp_pose = grasp_poses
 
         ### PLACE Pose Definition ###
