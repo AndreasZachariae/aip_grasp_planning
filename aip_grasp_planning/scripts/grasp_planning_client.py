@@ -12,6 +12,7 @@ from object_detector_tensorflow_interfaces.msg import Detections, Detection
 import numpy as np
 from aip_packing_planning_interfaces.msg import Package, PackageSequence
 from std_msgs.msg import Header
+import cv2
 
 class GraspPlanningNode(Node):
     def __init__(self):
@@ -54,7 +55,16 @@ def main(args=None):
     depth_image.height = 100
     depth_image.encoding = "32FC1"
     depth_image.step = depth_image.width * 4
-    depth_image.data = np.ones(depth_image.width * depth_image.height, dtype=np.float32).tobytes()
+    depth_image.data = np.linspace(0.5, 0.7, depth_image.width * depth_image.height, dtype=np.float32).tobytes()
+    # Convert the depth image to a numpy array
+    # depth_image_np = np.frombuffer(depth_image.data, dtype=np.float32).reshape((depth_image.height, depth_image.width))
+
+    # # Normalize the depth values to the range [0, 255]
+
+    # # Display the depth image
+    # cv2.imshow("Depth Image", depth_image_np)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     image_header = Header()
     image_header.stamp = rclpy.time.Time().to_msg()
@@ -86,8 +96,8 @@ def main(args=None):
     orientation = Quaternion()
     orientation.x = 0.0
     orientation.y = 0.0
-    orientation.z = 0.0
-    orientation.w = 1.0
+    orientation.z = 0.367
+    orientation.w = 0.93
     detection.center = center
     detection.bounding_box = bounding_box
     detection.mask = mask
