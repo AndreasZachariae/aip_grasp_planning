@@ -166,7 +166,7 @@ class GraspPlanningNode(Node):
 
             orientation = orientations[mask_index]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
-            q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w])
+            q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, -orientation.w])
             q3 = Rotation.from_euler('z', -np.pi/2)
             q_combined = q1 * q2 * q3
 
