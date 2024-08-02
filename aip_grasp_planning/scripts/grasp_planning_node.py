@@ -175,7 +175,7 @@ class GraspPlanningNode(Node):
             orientation = orientations[mask_index]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
             q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, -orientation.w])
-            q3 = Rotation.from_euler('z', -np.pi/2)
+            q3 = Rotation.from_euler('z', np.pi/2)
             q_combined = q1 * q2 * q3
 
             grasp_pose.orientation.x = q_combined.as_quat()[0]
@@ -196,13 +196,15 @@ class GraspPlanningNode(Node):
             self.grasp_poses_publisher.publish(grasp_pose_array)
 
 
-            x_offset = -tcps_cylinder_offsets[idx].translation[0]
-            y_offset = -tcps_cylinder_offsets[idx].translation[1]
+            x_offset = tcps_cylinder_offsets[idx].translation[0]
+            y_offset = tcps_cylinder_offsets[idx].translation[1]
             z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
             
             # Multiply the offsets with the rotation matrix
             offsets = np.array([x_offset, y_offset, z_offset])
-            offsets_rotated = np.dot(q1.as_matrix(), offsets)
+            offsets_rotated = np.dot(q_combined.as_matrix(), offsets)
+
+            self.get_logger().info("TCP Offsets: " + str(offsets))
 
             # Update the grasp pose with the rotated offsets
             grasp_pose.position.x += offsets_rotated[0]
