@@ -157,10 +157,6 @@ class GraspPlanningNode(Node):
             grasp_pose.position.x = grasp_pose_response.surface_normal_to_grasp.position.x
             grasp_pose.position.y = grasp_pose_response.surface_normal_to_grasp.position.y
             grasp_pose.position.z = grasp_pose_response.surface_normal_to_grasp.position.z
-            grasp_pose.orientation.x = grasp_pose_response.surface_normal_to_grasp.orientation.x
-            grasp_pose.orientation.y = grasp_pose_response.surface_normal_to_grasp.orientation.y
-            grasp_pose.orientation.z = grasp_pose_response.surface_normal_to_grasp.orientation.z
-            grasp_pose.orientation.w = -grasp_pose_response.surface_normal_to_grasp.orientation.w
 
             t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t)
@@ -169,26 +165,15 @@ class GraspPlanningNode(Node):
             grasp_pose = do_transform_pose(grasp_pose, t_w)
 
             orientation = orientations[mask_index]
+            q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
+            q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w])
+            q3 = Rotation.from_euler('z', -np.pi/2)
+            q_combined = q1 * q2 * q3
 
-            
-
-            # Calculate the new orientation of the grasp pose
-            # Convert the orientation to a rotation matrix
-            rotation_matrix = Rotation.from_quat([grasp_pose.orientation.x, grasp_pose.orientation.y, grasp_pose.orientation.z, grasp_pose.orientation.w]).as_matrix()
-
-            # turn by 90 to match y
-            angle = np.arccos(grasp_pose.orientation.w) - np.pi/4
-            grasp_pose.orientation.x = (grasp_pose.orientation.x / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
-            grasp_pose.orientation.y = (grasp_pose.orientation.y / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
-            grasp_pose.orientation.z = (grasp_pose.orientation.z / np.arccos(grasp_pose.orientation.w)) * np.sin(angle)
-            grasp_pose.orientation.w = np.cos(angle)
-            self.get_logger().info(f"Grasp pose after transform world WITHOUT TCP Offset: {grasp_pose}")
-
-            # TODO for calculating the grasp pose with true surface normal vector
-            # # Define a default homogeneous matrix
-            # default_pose = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-            # # Convert the grasp pose to a homogeneous matrix
-            # grasp_pose_matrix = default_pose * Affine()
+            grasp_pose.orientation.x = q_combined.as_quat()[0]
+            grasp_pose.orientation.y = q_combined.as_quat()[1]
+            grasp_pose.orientation.z = q_combined.as_quat()[2]
+            grasp_pose.orientation.w = q_combined.as_quat()[3]
 
             self.get_logger().info("TCP Offset for this package: " + str(tcps_cylinder_offsets[idx]))
 
@@ -197,17 +182,13 @@ class GraspPlanningNode(Node):
             z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
             
             # Multiply the offsets with the rotation matrix
-            offsets = np.array([-0, -0, -z_offset])
-            offsets_rotated = np.dot(rotation_matrix, offsets)
+            offsets = np.array([0, 0, z_offset])
+            offsets_rotated = np.dot(q1.as_matrix(), offsets)
 
             # Update the grasp pose with the rotated offsets
             grasp_pose.position.x += offsets_rotated[0]
             grasp_pose.position.y += offsets_rotated[1]
             grasp_pose.position.z += offsets_rotated[2]
-            
-            rotation_matrix = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w]).as_matrix()
-
-
 
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
             grasp_poses.append(grasp_pose)

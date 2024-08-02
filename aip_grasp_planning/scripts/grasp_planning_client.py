@@ -55,16 +55,23 @@ def main(args=None):
     depth_image.height = 100
     depth_image.encoding = "32FC1"
     depth_image.step = depth_image.width * 4
-    depth_image.data = np.linspace(0.5, 0.7, depth_image.width * depth_image.height, dtype=np.float32).tobytes()
     # Convert the depth image to a numpy array
-    # depth_image_np = np.frombuffer(depth_image.data, dtype=np.float32).reshape((depth_image.height, depth_image.width))
+    depth_image_np = np.linspace(0.5, 0.7, depth_image.width * depth_image.height ,dtype=np.float32).reshape((depth_image.height, depth_image.width))
+    # Transpose the depth image matrix
+    depth_image_np1 = np.transpose(depth_image_np)
+    
+    depth_image_np = depth_image_np + depth_image_np1
+    # Flatten the numpy array and assign it to depth_image.data
+    depth_image.data = depth_image_np.flatten().tobytes()
+    # Convert the depth image to a numpy array
+    depth_image_np = np.frombuffer(depth_image.data, dtype=np.float32).reshape((depth_image.height, depth_image.width))
 
-    # # Normalize the depth values to the range [0, 255]
+    # Normalize the depth values to the range [0, 255]
 
-    # # Display the depth image
-    # cv2.imshow("Depth Image", depth_image_np)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    # Display the depth image
+    cv2.imshow("Depth Image", depth_image_np)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     image_header = Header()
     image_header.stamp = rclpy.time.Time().to_msg()

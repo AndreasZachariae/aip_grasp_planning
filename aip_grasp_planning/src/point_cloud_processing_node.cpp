@@ -62,18 +62,24 @@
         pose.position.x = averagePosition.x;
         pose.position.y = averagePosition.y;
         pose.position.z = averagePosition.z;
-        pose.orientation.x = 0.0;
-        pose.orientation.y = 1.0;
-        pose.orientation.z = 0.0;
-        pose.orientation.w = 0;
-        // pose.position.x = planeCoefficients->values[0];
-        // pose.position.y = planeCoefficients->values[1];
-        // pose.position.z = planeCoefficients->values[2];
+
+        // Calculate the quaternion between the normal vector of the plane and a normal vector that only points in the z direction
+        Eigen::Vector3f planeNormal(planeCoefficients->values[0], planeCoefficients->values[1], planeCoefficients->values[2]);
+        Eigen::Vector3f zDirection(0.0, 0.0, 1.0);
+        Eigen::Quaternionf quaternion;
+        quaternion.setFromTwoVectors(planeNormal, zDirection);
+
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Quaternion: %f %f %f %f", quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
+        // Set the orientation of the pose
+        pose.orientation.x = quaternion.x();
+        pose.orientation.y = quaternion.y();
+        pose.orientation.z = quaternion.z();
+        pose.orientation.w = quaternion.w();
+
         // Set the response
         response->surface_normal_to_grasp = pose;
     }
-
-    // rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr result_publisher_;
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::projectCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients)
 {
