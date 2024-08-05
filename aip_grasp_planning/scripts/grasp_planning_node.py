@@ -127,23 +127,35 @@ class GraspPlanningNode(Node):
         cylinder_ejection_offset = 0.14
         used_mask_indices = []
 
+        # index_matching_start = 0
+
         for idx in range(len(pack_sequence_class_names)):
 
             self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
-
-
             self.get_logger().info(f"Grasp planning for package with CLASS NAME: {pack_sequence_class_names[idx]} and INDEX: {idx}")
 
             # if pack_sequence_class_name not in class_names:
             #     self.get_logger().info(f"{pack_sequence_class_name} not found in the detected objects.")
             #     self.get_logger().info("Abort grasp planning for this pack sequence.")
             #     return
-
-            for mask_index, pack_sequence_class in enumerate(pack_sequence_class_names):
-                if pack_sequence_class == class_names[mask_index] and mask_index not in used_mask_indices:
-                    used_mask_indices.append(mask_index)
-                    mask = masks[mask_index]
-                    break
+            # for mask_index, pack_sequence_class in enumerate(pack_sequence_class_names, index_matching_start):
+            start_idx = 0
+            satisfied = False
+            mask_id_detections = start_idx
+            while not satisfied:
+                mask_id_detections = class_names.index(pack_sequence_class_names[idx], start_idx)
+                if mask_id_detections not in used_mask_indices:
+                    satisfied = True
+                else:
+                    start_idx = mask_id_detections + 1
+            mask = masks[mask_id_detections]
+            self.get_logger().info(f"Class recognized: {class_names[mask_id_detections]}")
+            # index_matching_start = mask_index + 1
+            # break
+                # if pack_sequence_class == class_names[mask_index] and mask_index not in used_mask_indices:
+                #     used_mask_indices.append(mask_index)
+                    # mask = masks[mask_index]
+                #     break
 
             # Convert the mask image to a list of pixels
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
@@ -172,10 +184,18 @@ class GraspPlanningNode(Node):
             t_w = self.tf_buffer.lookup_transform("world", "base_link", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t_w)
 
-            orientation = orientations[mask_index]
+            orientation = orientations[mask_id_detections]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
             q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, -orientation.w])
             q3 = Rotation.from_euler('z', np.pi/2)
+            deg = q2.as_euler('zyx')[0]
+            self.get_logger().info("Orientation: " + str(deg))
+            if deg > 0:
+                deg = deg - Rotation.from_euler('z', np.pi)
+            elif deg < -np.pi:
+                deg = deg + Rotation.from_euler('z', np.pi)
+            q2 = Rotation.from_euler('z', deg)
+
             q_combined = q1 * q2 * q3
 
             grasp_pose.orientation.x = q_combined.as_quat()[0]
