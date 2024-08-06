@@ -190,10 +190,10 @@ class GraspPlanningNode(Node):
             q3 = Rotation.from_euler('z', np.pi/2)
             deg = q2.as_euler('zyx')[0]
             self.get_logger().info("Orientation: " + str(deg))
-            if deg > 0:
-                deg = deg - Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
-            elif deg < -np.pi:
-                deg = deg + Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
+            # if deg > 0:
+            #     deg = deg - Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
+            # elif deg < -np.pi:
+            #     deg = deg + Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
             q2 = Rotation.from_euler('z', deg)
 
             q_combined = q1 * q2 * q3
