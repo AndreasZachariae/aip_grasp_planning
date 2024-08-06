@@ -291,11 +291,10 @@ class GraspPlanningNode(Node):
 
         self.get_logger().info("Cylinder Ids " + str(response.cylinder_ids))
 
-        # # FIXED Place Pose response for now
-        # response.place_pose = [
-        #     Pose(position=Point(x=1.05, y=0.46, z=1.55), orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)),
-        #     Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
-        # ] #             Pose(position=Point(x=0.65, y=0.55, z=1.60), orientation=Quaternion(x=0.0, y=-0.05, z=0.05, w=1.0)),
+        # Set the amount of objects to place
+        amount_of_objects_to_place = len(packages)
+        response.amount_of_objects_to_place = amount_of_objects_to_place
+
         self.get_logger().info("Finished grasp planning logic.")
         return response
 

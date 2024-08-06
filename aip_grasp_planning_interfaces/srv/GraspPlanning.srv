@@ -6,3 +6,4 @@ object_detector_tensorflow_interfaces/Detections detections
 geometry_msgs/Pose[] grasp_pose
 CylinderCombination[] cylinder_ids
 geometry_msgs/Pose[] place_pose
+int8 amount_of_objects_to_place
