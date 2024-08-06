@@ -186,14 +186,14 @@ class GraspPlanningNode(Node):
 
             orientation = orientations[mask_id_detections]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
-            q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, -orientation.w])
+            q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w])
             q3 = Rotation.from_euler('z', np.pi/2)
             deg = q2.as_euler('zyx')[0]
             self.get_logger().info("Orientation: " + str(deg))
             if deg > 0:
-                deg = deg - Rotation.from_euler('z', np.pi)
+                deg = deg - Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
             elif deg < -np.pi:
-                deg = deg + Rotation.from_euler('z', np.pi)
+                deg = deg + Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
             q2 = Rotation.from_euler('z', deg)
 
             q_combined = q1 * q2 * q3
