@@ -31,12 +31,6 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
     index_msgs = []
     tcps_cylinder = []
     # cylinder = [] #old version
-
-
-    # print("Packages weights: " + str(packages_weights))
-    # self.get_logger().info("Packages length: " + str(packages_length))
-    # self.get_logger().info("Packages width: " + str(packages_width))
-
     
     for i in range(len(packages_weights)): #packplan
         cylinder_combination = CylinderCombination()
@@ -84,7 +78,7 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
             # cylinder.append("1,2")
             cylinder_combination.cylinder_ids = [1, 2]
             cylinder_ids.append(cylinder_combination)
-            tcp_cylinder =  Affine(translation = [-0.0663, 0.0149, 0.299], rotation=[0.0, 0.0, 0.0]) #[-0.0663, -0.0149, 0.299]     [0.0663, -0.0149, 0.299]
+            tcp_cylinder =  Affine(translation = [-0.0663, 0.0149, 0.299], rotation=[0.0, 0.0, 0.0]) 
             tcps_cylinder.append(tcp_cylinder)
 
         elif packages_width[i] > 0.13 and packages_weights[i] > 1.5:
