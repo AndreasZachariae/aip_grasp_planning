@@ -49,19 +49,37 @@
         pcl::PointXYZ averagePosition(0.0, 0.0, 0.0);
         for (const auto& point : projectedCloud->points)
         {
-            averagePosition.x += point.x;
-            averagePosition.y += point.y;
-            averagePosition.z += point.z;
+            std::vector<double> x_values;
+            std::vector<double> y_values;
+            std::vector<double> z_values;
+
+            for (const auto& point : projectedCloud->points)
+            {
+                x_values.push_back(point.x);
+                y_values.push_back(point.y);
+                z_values.push_back(point.z);
+            }
+
+            std::sort(x_values.begin(), x_values.end());
+            std::sort(y_values.begin(), y_values.end());
+            std::sort(z_values.begin(), z_values.end());
+
+            double median_x = x_values[x_values.size() / 2];
+            double median_y = y_values[y_values.size() / 2];
+            double median_z = z_values[z_values.size() / 2];
+
+            medianPosition.x = median_x;
+            medianPosition.y = median_y;
+            medianPosition.z = median_z;
+
+
         }
-        int numPoints = projectedCloud->size();
-        averagePosition.x /= numPoints;
-        averagePosition.y /= numPoints;
-        averagePosition.z /= numPoints;
+
 
         // Set the pose
-        pose.position.x = averagePosition.x;
-        pose.position.y = averagePosition.y;
-        pose.position.z = averagePosition.z;
+        pose.position.x = medianPosition.x;
+        pose.position.y = medianPosition.y;
+        pose.position.z = medianPosition.z;
 
         // Calculate the quaternion between the normal vector of the plane and a normal vector that only points in the z direction
         Eigen::Vector3f planeNormal(planeCoefficients->values[0], planeCoefficients->values[1], planeCoefficients->values[2]);
