@@ -129,6 +129,15 @@ class GraspPlanningNode(Node):
 
         # index_matching_start = 0
 
+        grasp_pose_array = PoseArray()
+        grasp_pose_array.header.frame_id = "world"
+        grasp_pose_array.header.stamp = self.get_clock().now().to_msg()
+    
+        grasp_poses_with_offsets_array = PoseArray()
+        grasp_poses_with_offsets_array.header.frame_id = "world"
+        grasp_poses_with_offsets_array.header.stamp = self.get_clock().now().to_msg()
+        
+        start_idx = 0
         for idx in range(len(pack_sequence_class_names)):
 
             self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
@@ -139,13 +148,13 @@ class GraspPlanningNode(Node):
             #     self.get_logger().info("Abort grasp planning for this pack sequence.")
             #     return
             # for mask_index, pack_sequence_class in enumerate(pack_sequence_class_names, index_matching_start):
-            start_idx = 0
             satisfied = False
             mask_id_detections = start_idx
             while not satisfied:
                 mask_id_detections = class_names.index(pack_sequence_class_names[idx], start_idx)
                 if mask_id_detections not in used_mask_indices:
                     satisfied = True
+                    used_mask_indices.append(mask_id_detections)
                 else:
                     start_idx = mask_id_detections + 1
             mask = masks[mask_id_detections]
@@ -187,34 +196,18 @@ class GraspPlanningNode(Node):
             orientation = orientations[mask_id_detections]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
             q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w])
-            q3 = Rotation.from_euler('z', np.pi/2)
             deg = q2.as_euler('zyx')[0]
             self.get_logger().info("Orientation: " + str(deg))
-            # if deg > 0:
-            #     deg = deg - Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
-            # elif deg < -np.pi:
-            #     deg = deg + Rotation.from_euler('z', np.pi).as_euler('zyx')[0]
             q2 = Rotation.from_euler('z', deg)
 
-            q_combined = q1 * q2 * q3
+            q_combined = q1 * q2
 
             grasp_pose.orientation.x = q_combined.as_quat()[0]
             grasp_pose.orientation.y = q_combined.as_quat()[1]
             grasp_pose.orientation.z = q_combined.as_quat()[2]
             grasp_pose.orientation.w = q_combined.as_quat()[3]
-
-            grasp_pose_array = PoseArray()
-            grasp_pose_array.header.frame_id = "world"
-            grasp_pose_array.header.stamp = self.get_clock().now().to_msg()
-            grasp_pose_array.poses = copy.deepcopy(grasp_poses)
-            self.grasp_poses_publisher.publish(grasp_pose_array)
-
-            grasp_pose_array = PoseArray()
-            grasp_pose_array.header.frame_id = "world"
-            grasp_pose_array.header.stamp = self.get_clock().now().to_msg()
-            grasp_pose_array.poses = copy.deepcopy([grasp_pose])
-            self.grasp_poses_publisher.publish(grasp_pose_array)
-
+            
+            grasp_pose_array.poses.append(copy.deepcopy(grasp_pose))
 
             x_offset = tcps_cylinder_offsets[idx].translation[0]
             y_offset = tcps_cylinder_offsets[idx].translation[1]
@@ -223,23 +216,21 @@ class GraspPlanningNode(Node):
             # Multiply the offsets with the rotation matrix
             offsets = np.array([x_offset, y_offset, z_offset])
             offsets_rotated = np.dot(q_combined.as_matrix(), offsets)
-
+               
             self.get_logger().info("TCP Offsets: " + str(offsets))
-
+           
             # Update the grasp pose with the rotated offsets
-            grasp_pose.position.x += offsets_rotated[0]
-            grasp_pose.position.y += offsets_rotated[1]
-            grasp_pose.position.z += offsets_rotated[2]
-
-            grasp_poses_with_offsets_array = PoseArray()
-            grasp_poses_with_offsets_array.header.frame_id = "world"
-            grasp_poses_with_offsets_array.header.stamp = self.get_clock().now().to_msg()
-            grasp_poses_with_offsets_array.poses = copy.deepcopy([grasp_pose])
-            self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
-
+            grasp_pose_with_offset = copy.deepcopy(grasp_pose)
+            grasp_pose_with_offset.position.x =  grasp_pose.position.x + offsets_rotated[0]
+            grasp_pose_with_offset.position.y = grasp_pose.position.y + offsets_rotated[1]
+            grasp_pose_with_offset.position.z = grasp_pose.position.z + offsets_rotated[2]         
+            
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
-            grasp_poses.append(grasp_pose)
+            grasp_poses_with_offsets_array.poses.append(grasp_pose_with_offset)          
 
+            
+        self.grasp_poses_publisher.publish(grasp_pose_array)
+        self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
         response.grasp_pose = grasp_poses
 
         ### PLACE Pose Definition ###
