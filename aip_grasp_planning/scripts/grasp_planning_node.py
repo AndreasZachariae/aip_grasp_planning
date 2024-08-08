@@ -138,6 +138,9 @@ class GraspPlanningNode(Node):
         grasp_poses_with_offsets_array.header.stamp = self.get_clock().now().to_msg()
         
         start_idx = 0
+               
+        grasp_poses_with_offset = []
+        
         for idx in range(len(pack_sequence_class_names)):
 
             self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
@@ -221,17 +224,18 @@ class GraspPlanningNode(Node):
            
             # Update the grasp pose with the rotated offsets
             grasp_pose_with_offset = copy.deepcopy(grasp_pose)
-            grasp_pose_with_offset.position.x =  grasp_pose.position.x + offsets_rotated[0]
-            grasp_pose_with_offset.position.y = grasp_pose.position.y + offsets_rotated[1]
-            grasp_pose_with_offset.position.z = grasp_pose.position.z + offsets_rotated[2]         
+            grasp_pose_with_offset.position.x +=  offsets_rotated[0]
+            grasp_pose_with_offset.position.y += offsets_rotated[1]
+            grasp_pose_with_offset.position.z += offsets_rotated[2]         
             
             self.get_logger().info("Grasp pose in WORLD WITH TCP Offset: " + str(grasp_pose))
+            grasp_poses_with_offset.append(grasp_pose_with_offset)
             grasp_poses_with_offsets_array.poses.append(grasp_pose_with_offset)          
 
-            
         self.grasp_poses_publisher.publish(grasp_pose_array)
         self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
-        response.grasp_pose = grasp_poses
+        
+        response.grasp_pose = grasp_poses_with_offset
 
         ### PLACE Pose Definition ###
         # Container corner reference 
