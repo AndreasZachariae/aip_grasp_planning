@@ -36,7 +36,7 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
         cylinder_combination = CylinderCombination()
 
         str_i = str(i)
-        if packages_width[i] <= 0.13 and packages_weights[i] > 0.2:
+        if packages_width[i] <= (0.13 + 0.01) and packages_weights[i] > 0.2:
             # index_msg = 3
             # index_msgs.append(index_msg)
             # cylinder.append("3")
@@ -45,7 +45,7 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
             tcp_cylinder =  Affine(translation = [0.0485, 0.081, 0.299], rotation=[0.0, 0.0, 0.0])
             tcps_cylinder.append(tcp_cylinder)
         
-        elif packages_width[i] <= 0.13 and packages_weights[i] <= 0.2:
+        elif packages_width[i] <= (0.13 + 0.01) and packages_weights[i] <= 0.2:
             # index_msg = 1
             # index_msgs.append(index_msg)
             # cylinder.append("1")
@@ -72,7 +72,7 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
         #     tcp_cylinder =  Affine(translation = [0.0502, 0.0593, 0.299], rotation=[0.0, 0.0, 0.0])
         #     tcps_cylinder.append(tcp_cylinder)
 
-        elif packages_width[i] > 0.13 and packages_weights[i] <= 1.5:
+        elif packages_width[i] > (0.13 + 0.01) and packages_weights[i] <= 1.5:
             # index_msg = 5
             # index_msgs.append(index_msg)
             # cylinder.append("1,2")
@@ -81,7 +81,7 @@ def choose_cylinder(packages_weights, packages_length, packages_width): #package
             tcp_cylinder =  Affine(translation = [-0.0663, 0.0149, 0.299], rotation=[0.0, 0.0, 0.0]) 
             tcps_cylinder.append(tcp_cylinder)
 
-        elif packages_width[i] > 0.13 and packages_weights[i] > 1.5:
+        elif packages_width[i] > (0.13 + 0.01) and packages_weights[i] > 1.5:
             # index_msg = 6
             # index_msgs.append(index_msg)
             # cylinder.append("2,4")
