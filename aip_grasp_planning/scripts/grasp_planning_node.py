@@ -228,7 +228,7 @@ class GraspPlanningNode(Node):
 
         ### PLACE Pose Definition ###
         # Container corner reference 
-        container_corner = Point(x=0.75, y=0.3, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
+        container_corner = Point(x=0.75, y=0.1, z=0.95)   #container size = 0.585, 0.392, 0.188 -> see packing_algorithm docker container 
         place_poses = []
 
         # Calculate the place pose for each package
