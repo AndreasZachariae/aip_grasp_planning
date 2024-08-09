@@ -146,11 +146,6 @@ class GraspPlanningNode(Node):
             self.get_logger().info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx")
             self.get_logger().info(f"Grasp planning for package with CLASS NAME: {pack_sequence_class_names[idx]} and INDEX: {idx}")
 
-            # if pack_sequence_class_name not in class_names:
-            #     self.get_logger().info(f"{pack_sequence_class_name} not found in the detected objects.")
-            #     self.get_logger().info("Abort grasp planning for this pack sequence.")
-            #     return
-            # for mask_index, pack_sequence_class in enumerate(pack_sequence_class_names, index_matching_start):
             satisfied = False
             mask_id_detections = start_idx
             while not satisfied:
@@ -162,12 +157,6 @@ class GraspPlanningNode(Node):
                     start_idx = mask_id_detections + 1
             mask = masks[mask_id_detections]
             self.get_logger().info(f"Class recognized: {class_names[mask_id_detections]}")
-            # index_matching_start = mask_index + 1
-            # break
-                # if pack_sequence_class == class_names[mask_index] and mask_index not in used_mask_indices:
-                #     used_mask_indices.append(mask_index)
-                    # mask = masks[mask_index]
-                #     break
 
             # Convert the mask image to a list of pixels
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
@@ -251,8 +240,8 @@ class GraspPlanningNode(Node):
             # Check target orientation per package from the packing plan and calculate the place pose
             if package.rotation_index == 1: #long tcp side across to long package side 
                 place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+                            position=Point(x=container_corner.x + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[0], 
+                                           y=container_corner.y + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[1], 
                                         #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                                            z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             
@@ -260,23 +249,12 @@ class GraspPlanningNode(Node):
                 
             elif package.rotation_index == 3: #long tcp side parallel to long package side
                 place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[0], 
-                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[1], 
+                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[0], 
                                         #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
                                            z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
                         )
-
-
-            self.get_logger().info("Container Corner in WORLD: " + str(container_corner))
-            self.get_logger().info("Package Place Coordinate    X   : " + str(package.place_coordinates.x))
-            self.get_logger().info("TCPS Cylinder Offset        X   : " + str(tcps_cylinder_offsets[idx].translation[0]))
-            
-            self.get_logger().info("Package Place Coordinate    Y   : " + str(package.place_coordinates.y))
-            self.get_logger().info("TCPS Cylinder Offset        Y   : " + str(tcps_cylinder_offsets[idx].translation[1]))
-
-            self.get_logger().info("Package Dimensions          Z   : " + str(package.dimensions.z))
-            self.get_logger().info("TCPS Cylinder Offset        Z  incl. EjecOff : " + str(tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset))
 
             self.get_logger().info("PLACE Pose in WORLD WITH TCP Offset: " + str(place_pose))
 
