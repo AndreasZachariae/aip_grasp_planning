@@ -46,7 +46,7 @@
         // pcl::ModelCoefficients::Ptr coefficients = this->extractSurfacePlane(cloud);
 
         // RCLCPP_INFO(this->get_logger(), "Point cloud saved as PCD file");
-        pcl::PointXYZ averagePosition(0.0, 0.0, 0.0);
+        pcl::PointXYZ medianPosition(0.0, 0.0, 0.0);
         for (const auto& point : projectedCloud->points)
         {
             std::vector<double> x_values;
