@@ -26,6 +26,7 @@ public:
     void processPointCloud(const std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Request> request, std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Response> response);
 
 private:
+    pcl::PointCloud<pcl::PointXYZ>::Ptr concatinatedCloud;
     void filterCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float leaf_size);
     pcl::PointCloud<pcl::PointXYZ>::Ptr transformPointsToPointCloud(const std::vector<geometry_msgs::msg::Point>& maskedPoints);
     pcl::ModelCoefficients::Ptr extractSurfacePlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr& surfacePlane);

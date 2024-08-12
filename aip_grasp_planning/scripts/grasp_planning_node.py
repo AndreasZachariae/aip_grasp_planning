@@ -162,12 +162,17 @@ class GraspPlanningNode(Node):
             pixels = self.convert_image_mask_to_pixel_indices(mask, depth_image.width, depth_image.height)
 
             # Call the 'pixel_to_point' method to convert the pixels to points
-            future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image)
+            if idx == 0:
+                reset_viz = True
+            else:
+                reset_viz = False
+            future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image, reset_viz)
             await future
             point_response = future.result()
 
             # Call the 'grasp_pose_client' servicefilterCloud to get the grasp poses
             grasp_pose_request = GraspObjectSurfaceNormal.Request()
+            grasp_pose_request.reset_viz = reset_viz
             grasp_pose_request.masked_points = point_response.points       #request type = geometry_msgs/Point[]
             future = self.grasp_pose_client.call_async(grasp_pose_request)  #response type = geometry_msgs/Pose surface_normal_to_grasp
             await future
@@ -286,7 +291,7 @@ class GraspPlanningNode(Node):
                     pixels.append((j, i))
         return pixels
         
-    def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
+    def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image(), reset_viz=True):
         """
         Convert a list of pixels to a list of Point objects asynchronously.
 
@@ -309,15 +314,15 @@ class GraspPlanningNode(Node):
             points_msg.append(point)
 
         # Create a request message for the 'PixelToPoint' service
-        tranform_request = PixelToPoint.Request()
-        tranform_request.pixels = points_msg
-        tranform_request.height = int(height)
-        tranform_request.width = int(width)
-        tranform_request.depth_image = depth_image
-        tranform_request.camera_type = "roboception"
+        transform_request = PixelToPoint.Request()
+        transform_request.pixels = points_msg
+        transform_request.height = int(height)
+        transform_request.width = int(width)
+        transform_request.depth_image = depth_image
+        transform_request.camera_type = "roboception"
 
         # Call the 'PixelToPoint' service asynchronously
-        future = self.PtP_client.call_async(tranform_request)
+        future = self.PtP_client.call_async(transform_request)
         return future
 
 def main(args=None):

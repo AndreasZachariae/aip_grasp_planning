@@ -1,7 +1,7 @@
 #include <pcl_processing/point_cloud_processing_node.h>
 
 
-    PointCloudProcessingNode::PointCloudProcessingNode(): Node("grasp_object_surface_normal")
+    PointCloudProcessingNode::PointCloudProcessingNode(): Node("grasp_object_surface_normal"), concatinatedCloud(new pcl::PointCloud<pcl::PointXYZ>)
     {
         // Create the service
         this->service = this->create_service<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal>("grasp_object_surface_normal", std::bind(&PointCloudProcessingNode::processPointCloud, this, std::placeholders::_1, std::placeholders::_2));
@@ -13,8 +13,9 @@
     void PointCloudProcessingNode::publish_point_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
     {
         // Convert the PCL point cloud to a ROS 2 PointCloud2 message
+        concatinatedCloud->points.insert(concatinatedCloud->points.end(), cloud->points.begin(), cloud->points.end());
         sensor_msgs::msg::PointCloud2 point_cloud_msg;
-        pcl::toROSMsg(*cloud, point_cloud_msg);
+        pcl::toROSMsg(*concatinatedCloud, point_cloud_msg);
 
         // Fill the header
         point_cloud_msg.header.stamp = this->now();
@@ -26,6 +27,8 @@
 
     void PointCloudProcessingNode::processPointCloud(const std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Request> request, std::shared_ptr<aip_grasp_planning_interfaces::srv::GraspObjectSurfaceNormal::Response> response)
     {
+        if (request->reset_viz)
+            concatinatedCloud->points.clear();
         // Process the point cloud and generate the pose
         geometry_msgs::msg::Pose pose;
         

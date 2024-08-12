@@ -1,3 +1,4 @@
 geometry_msgs/Point[] masked_points
+bool reset_viz
 ---
 geometry_msgs/Pose surface_normal_to_grasp
