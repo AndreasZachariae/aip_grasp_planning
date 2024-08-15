@@ -66,8 +66,6 @@ def main(args=None):
     # Convert the depth image to a numpy array
     depth_image_np = np.frombuffer(depth_image.data, dtype=np.float32).reshape((depth_image.height, depth_image.width))
 
-    # Normalize the depth values to the range [0, 255]
-
     # Display the depth image
     cv2.imshow("Depth Image", depth_image_np)
     cv2.waitKey(0)
