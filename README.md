@@ -13,8 +13,15 @@ The grasp planning is based on the following operations:
     - Extraction of the object surface with RANSAC algorithm including projection of all points onto the determined surface    
     - Determination of the normal vector for the surface    
     - Determination of the grasp point as median of all relevant points in the point cloud    
-    - Determination of the grasp vector by including the orientation per package received from ODTF    
-  3. Bosch vaccuum gripper (with 4 pneumatic individually actuated cylinders)   
+    - Determination of the grasp vector by including the orientation per package received from ODTF
+
+      <div style="display:flex; justify-content:space-between;">
+        <img src="aip_grasp_planning/docs/pcl_image1.png" width="400">
+        <img src="aip_grasp_planning/docs/pcl_image3.png" width="400">
+      </div>
+      <br>
+
+  3. Bosch vaccuum gripper (with 4 pneumatic individually actuated cylinders)
     - Dynamic gripper selection based on the detected package   
     - Offset calculation to provide the correct grasp poses   
 
