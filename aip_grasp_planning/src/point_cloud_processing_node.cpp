@@ -104,17 +104,19 @@
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudProcessingNode::projectCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, pcl::ModelCoefficients::Ptr coefficients)
 {
+    // project the points onto the plane
     pcl::ProjectInliers<pcl::PointXYZ> proj;
     proj.setModelType(pcl::SACMODEL_PLANE);
     proj.setInputCloud(cloud);
-    proj.setModelCoefficients(coefficients);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr projectedCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    proj.setModelCoefficients(coefficients); 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projectedCloud(new pcl::PointCloud<pcl::PointXYZ>); 
     proj.filter(*projectedCloud);
     return projectedCloud;
 }
 
 void PointCloudProcessingNode::filterCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float leaf_size)
 {
+        // Use a voxel grid filter to downsample the point cloud with a leaf size 
         pcl::VoxelGrid<pcl::PointXYZ> voxelFilter;
         voxelFilter.setInputCloud(cloud);
         voxelFilter.setLeafSize(leaf_size, leaf_size, leaf_size);

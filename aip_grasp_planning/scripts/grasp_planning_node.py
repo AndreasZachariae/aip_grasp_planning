@@ -33,17 +33,7 @@ from scipy.spatial.transform import Rotation
 import copy
 
 
-# import cv2
-# from cv_bridge import CvBridge
-# import numpy as np
-
 class GraspPlanningNode(Node):
-    """
-    This class represents the GraspPlanning node.
-
-    It subscribes to the '/stereo/depth' topic, calls the 'PixelToPoint' service provided by the 'point_transformation_node',
-    and handles the response asynchronously.
-    """
     def __init__(self):
         super().__init__('grasp_planning_node')
         self.service_group = MutuallyExclusiveCallbackGroup() #callback group controls the execution of the callback function 
@@ -113,8 +103,7 @@ class GraspPlanningNode(Node):
         #     self.get_logger().info("PACKAGE " + str(package.class_name) + " with dimensions: " + str(package.dimensions) + " and weight: " + str(package.weight))
 
         # Choose Cylinder per package based on the package dimensions and weight
-
-        index_msgs, cylinder_ids_per_package, tcps_cylinder_offsets = choose_cylinder(packages_weights, packages_length, packages_width) #, packages_height)
+        _, cylinder_ids_per_package, tcps_cylinder_offsets = choose_cylinder(packages_weights, packages_length, packages_width) 
         self.get_logger().info("Cylinder IDs per package: " + str(cylinder_ids_per_package))
         self.get_logger().info("TCP offsets per package: " + str(tcps_cylinder_offsets))
         response.cylinder_ids = cylinder_ids_per_package
@@ -123,11 +112,8 @@ class GraspPlanningNode(Node):
         for package in packages:
             pack_sequence_class_names.append(package.class_name)
 
-        grasp_poses = []
         cylinder_ejection_offset = 0.14
         used_mask_indices = []
-
-        # index_matching_start = 0
 
         grasp_pose_array = PoseArray()
         grasp_pose_array.header.frame_id = "world"
@@ -184,12 +170,15 @@ class GraspPlanningNode(Node):
             grasp_pose.position.y = grasp_pose_response.surface_normal_to_grasp.position.y
             grasp_pose.position.z = grasp_pose_response.surface_normal_to_grasp.position.z
 
+            # Transform the grasp pose from camera to the base_link frame
             t = self.tf_buffer.lookup_transform("base_link", "camera", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t)
-            self.get_logger().info(f"Grasp pose after transform base: {grasp_pose}")
+            self.get_logger().info(f"Grasp pose after transform base_link: {grasp_pose}")
+            # Transform the grasp pose from base_link to the world frame
             t_w = self.tf_buffer.lookup_transform("world", "base_link", rclpy.time.Time())
             grasp_pose = do_transform_pose(grasp_pose, t_w)
 
+            # Calculate the orientation of the grasp pose by using the orientation of the surface normal to the grasp pose
             orientation = orientations[mask_id_detections]
             q1 = Rotation.from_quat([-grasp_pose_response.surface_normal_to_grasp.orientation.x, grasp_pose_response.surface_normal_to_grasp.orientation.y, grasp_pose_response.surface_normal_to_grasp.orientation.z, -grasp_pose_response.surface_normal_to_grasp.orientation.w])
             q2 = Rotation.from_quat([orientation.x, orientation.y, orientation.z, orientation.w])
@@ -197,8 +186,10 @@ class GraspPlanningNode(Node):
             self.get_logger().info("Orientation: " + str(deg))
             q2 = Rotation.from_euler('z', deg)
 
+            # Combine the two rotations
             q_combined = q1 * q2
 
+            # Set the orientation of the grasp pose
             grasp_pose.orientation.x = q_combined.as_quat()[0]
             grasp_pose.orientation.y = q_combined.as_quat()[1]
             grasp_pose.orientation.z = q_combined.as_quat()[2]
@@ -206,9 +197,10 @@ class GraspPlanningNode(Node):
             
             grasp_pose_array.poses.append(copy.deepcopy(grasp_pose))
 
+            # Retrieve the TCP offsets for the cylinder corresponding to the package
             x_offset = tcps_cylinder_offsets[idx].translation[0]
             y_offset = tcps_cylinder_offsets[idx].translation[1]
-            z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset
+            z_offset = tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset # Add ejection offset for pneumatic cylinder
             
             # Multiply the offsets with the rotation matrix
             offsets = np.array([x_offset, y_offset, z_offset])
@@ -226,6 +218,7 @@ class GraspPlanningNode(Node):
             grasp_poses_with_offset.append(grasp_pose_with_offset)
             grasp_poses_with_offsets_array.poses.append(grasp_pose_with_offset)          
 
+        # Publish the grasp poses with/without offsets to visualize in RViz
         self.grasp_poses_publisher.publish(grasp_pose_array)
         self.grasp_poses_with_offset_publisher.publish(grasp_poses_with_offsets_array)
         
@@ -280,7 +273,8 @@ class GraspPlanningNode(Node):
         pixels = []
         bridge = CvBridge()
         self.get_logger().info(f"Mask shape: {mask.height} x {mask.width}")
-        # Konvertieren von sensor_msgs/Image zu einem OpenCV-Bild
+
+        # Convert sensor_msgs/Image to an OpenCV image
         cv_image = bridge.imgmsg_to_cv2(mask, desired_encoding='passthrough')
         self.get_logger().info(f"Mask shape: {cv_image.shape}")
         resized_image = cv2.resize(cv_image, (depth_width, depth_height))
@@ -291,19 +285,7 @@ class GraspPlanningNode(Node):
                     pixels.append((j, i))
         return pixels
         
-    def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image(), reset_viz=True):
-        """
-        Convert a list of pixels to a list of Point objects asynchronously.
-
-        Args:
-            pixels (list): List of pixels to convert.
-            height (int): Height of the image.
-            width (int): Width of the image.
-            depth_image (Image): Depth image.
-
-        Returns:
-            transform_response (PixelToPoint.Response): Response from the 'PixelToPoint' service.
-        """
+    def pixel_to_point_async(self, pixels: list, height=0, width=0, depth_image:Image=Image()):
         # Convert the list of pixels to a list of Point objects
         points_msg = []
         for pixel in pixels:
