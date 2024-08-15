@@ -15,11 +15,11 @@ The grasp planning is based on the following operations:
     - Determination of the grasp point as median of all relevant points in the point cloud    
     - Determination of the grasp vector by including the orientation per package received from ODTF
 
-  <div style="display:flex; justify-content:center;">
-    <img src="aip_grasp_planning/docs/pcl_image1.png" width="350">
-    <img src="aip_grasp_planning/docs/pcl_image3.png" width="350">
-  </div>
-  <br>
+      <div style="display:flex;">
+        <img src="aip_grasp_planning/docs/pcl_image1.png" width="350">
+        <img src="aip_grasp_planning/docs/pcl_image3.png" width="350">
+      </div>
+      <br>
 
   3. Bosch vaccuum gripper (with 4 pneumatic individually actuated cylinders)
     - Dynamic gripper selection based on the detected package   
