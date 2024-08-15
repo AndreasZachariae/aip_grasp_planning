@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# This client is used to call a user defined GraspPlanning service with example messages.
+# It can be used for debugging purposes or for hardware independent development.
+
+
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup

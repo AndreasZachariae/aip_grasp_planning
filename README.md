@@ -7,9 +7,9 @@ This repository contains the 6-DoF Grasp Planning for the Automated Item Picking
 The grasp planning is based on the following operations: 
   1. Preprocessing   
     - Receive depth image from the Roboception camera   
-    - Transform the depth image into a point cloud with a resolution of 10mm   
+    - Transform the depth image based on the object mask from ODTF into a point cloud with a resolution of 10mm   
   2. Determination of the 6-DoF grasp poses   
-    - Filtering the point cloud with the received masks per object from ODTF
+    - Filtering the point cloud
     - Extraction of the object surface with RANSAC algorithm including projection of all points onto the determined surface    
     - Determination of the normal vector for the surface    
     - Determination of the grasp point as median of all relevant points in the point cloud    
