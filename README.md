@@ -58,6 +58,15 @@ For more information on the necessary inputs and outputs, please review the modu
 - [Object_Detector_Tensorflow](https://github.com/eshan-savla/object_detector_tensorflow) 
 - [AIP_Packing_Algorithm](https://github.com/SchmittAndreas/aip_packing_algorithm) 
 
+## Visualization
+
+Grasp poses and the resulting object surface point cloud can be visualized in RVIZ. Therefore the following topics are published:
+
+- /grasp_object_surface_point_cloud (White PointCloud2)
+- /grasp_poses (Green arrow)
+- /grasp_poses_with_offset (Red arrow)
+
+<img src="aip_grasp_planning/docs/rviz.JPG" width="400"><br>
 
 ## Miscellaneous
 
