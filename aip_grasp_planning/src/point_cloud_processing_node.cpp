@@ -50,33 +50,30 @@
 
         // RCLCPP_INFO(this->get_logger(), "Point cloud saved as PCD file");
         pcl::PointXYZ medianPosition(0.0, 0.0, 0.0);
+        std::vector<double> x_values;
+        std::vector<double> y_values;
+        std::vector<double> z_values;
+
         for (const auto& point : projectedCloud->points)
         {
-            std::vector<double> x_values;
-            std::vector<double> y_values;
-            std::vector<double> z_values;
-
-            for (const auto& point : projectedCloud->points)
-            {
-                x_values.push_back(point.x);
-                y_values.push_back(point.y);
-                z_values.push_back(point.z);
-            }
-
-            std::sort(x_values.begin(), x_values.end());
-            std::sort(y_values.begin(), y_values.end());
-            std::sort(z_values.begin(), z_values.end());
-
-            double median_x = x_values[x_values.size() / 2];
-            double median_y = y_values[y_values.size() / 2];
-            double median_z = z_values[z_values.size() / 2];
-
-            medianPosition.x = median_x;
-            medianPosition.y = median_y;
-            medianPosition.z = median_z;
-
-
+            x_values.push_back(point.x);
+            y_values.push_back(point.y);
+            z_values.push_back(point.z);
         }
+
+        std::sort(x_values.begin(), x_values.end());
+        std::sort(y_values.begin(), y_values.end());
+        std::sort(z_values.begin(), z_values.end());
+
+        double median_x = x_values[x_values.size() / 2];
+        double median_y = y_values[y_values.size() / 2];
+        double median_z = z_values[z_values.size() / 2];
+
+        medianPosition.x = median_x;
+        medianPosition.y = median_y;
+        medianPosition.z = median_z;
+
+
 
 
         // Set the pose

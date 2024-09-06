@@ -152,7 +152,7 @@ class GraspPlanningNode(Node):
                 reset_viz = True
             else:
                 reset_viz = False
-            future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image, reset_viz)
+            future = self.pixel_to_point_async(pixels, depth_image.height, depth_image.width, depth_image)
             await future
             point_response = future.result()
 
@@ -247,8 +247,8 @@ class GraspPlanningNode(Node):
                 
             elif package.rotation_index == 3: #long tcp side parallel to long package side
                 place_pose = Pose(
-                            position=Point(x=container_corner.x + package.place_coordinates.x + tcps_cylinder_offsets[idx].translation[1], 
-                                           y=container_corner.y + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[0], 
+                            position=Point(x=container_corner.x + package.place_coordinates.y + tcps_cylinder_offsets[idx].translation[1], 
+                                           y=container_corner.y + package.place_coordinates.x - tcps_cylinder_offsets[idx].translation[0], 
                                         #    z=container_corner.z + package.dimensions.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset), # TODO: Change to allow multi layer placements
                                            z=container_corner.z + package.place_coordinates.z + tcps_cylinder_offsets[idx].translation[2] + cylinder_ejection_offset),  # TODO: Change to allow multi layer placements
                             orientation=Quaternion(x=0.0, y=0.0, z=-np.sin(np.pi / 4), w=np.cos(np.pi / 4))
