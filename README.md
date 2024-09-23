@@ -6,14 +6,14 @@ This repository contains the 6-DoF Grasp Planning for the Automated Item Picking
 
 The grasp planning is based on the following operations: 
   1. Preprocessing   
-    - Receive depth image from the Roboception camera   
-    - Transform the depth image based on the object mask from ODTF into a point cloud with a resolution of 10mm   
+     - Receive depth image from the Roboception camera  
+     - Transform the depth image based on the object mask from ODTF into a point cloud with a resolution of 10mm   
   2. Determination of the 6-DoF grasp poses   
-    - Filtering the point cloud
-    - Extraction of the object surface with RANSAC algorithm including projection of all points onto the determined surface    
-    - Determination of the normal vector for the surface    
-    - Determination of the grasp point as median of all relevant points in the point cloud    
-    - Determination of the grasp vector by including the orientation per package received from ODTF
+     - Filtering the point cloud
+     - Extraction of the object surface with RANSAC algorithm including projection of all points onto the determined surface    
+     - Determination of the normal vector for the surface    
+     - Determination of the grasp point as median of all relevant points in the point cloud    
+     - Determination of the grasp vector by including the orientation per package received from ODTF
 
       <div style="display:flex;">
         <img src="aip_grasp_planning/docs/pcl_image1.png" width="350">
@@ -22,8 +22,8 @@ The grasp planning is based on the following operations:
       <br>
 
   3. Bosch vaccuum gripper (with 4 pneumatic individually actuated cylinders)
-    - Dynamic gripper selection based on the detected package   
-    - Offset calculation to provide the correct grasp poses   
+     - Dynamic gripper selection based on the detected package   
+     - Offset calculation to provide the correct grasp poses   
 
 To calculate the inverse kinematics of the robot, the Trac-IK solver is configured and used in aip_bringup.   
 The path planning and trajectory planning remains on the commonly used one's in MoveIt.   
