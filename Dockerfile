@@ -64,7 +64,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y \
     ros-$ROS_DISTRO-joy*  \
     ros-$ROS_DISTRO-cv-bridge \
     ros-$ROS_DISTRO-perception-pcl\
-    ros-$ROS_DISTRO-rviz2
+    ros-$ROS_DISTRO-rviz2 \
+    ros-$ROS_DISTRO-pcl-conversions
 
 USER $USER
 # RUN pip install numpy open3d opencv-python
