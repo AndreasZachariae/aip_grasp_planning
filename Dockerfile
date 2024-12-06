@@ -106,10 +106,8 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build \
 --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 RUN echo "source /home/$USER/ros_ws/install/setup.bash" >> /home/$USER/.bashrc
 
+RUN sudo sed --in-place --expression \
+    '$isource "/home/$USER/ros_ws/install/setup.bash"' \
+    /ros_entrypoint.sh
 
-COPY --chown=$USER --chmod=0755 ./entrypoint.sh /home/$USER/ros_ws/entrypoint.sh
 CMD ["/bin/bash"]
-
-# ENTRYPOINT ["./entrypoint.sh"]
-
-
